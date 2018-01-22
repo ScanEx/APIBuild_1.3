@@ -1,0 +1,16 @@
+**/*build.js
+**/*deps.js
+**/*-dev.js
+**/Jakefile.js
+**/gulpfile.js
+**/examples
+**/examplesV2
+**/debug
+**/node_modules
+**/dist
+**/Leaflet-GeoMixer/dist
+**/Leaflet.markercluster
+**/Leaflet.heat
+**/Leaflet.contextmenu
+**/Leaflet-0.7.7
+**/gmxControls/dist

@@ -1,0 +1,30 @@
+{
+  "name": "APIv3",
+  "version": "0.0.3",
+  "description": "GeoMixer API for Leaflet",
+  "devDependencies": {
+    "directory-exists": "~1.0.1",
+    "eslint": "^2.7.0",
+    "file-exists": "~1.0.0",
+    "gulp": "^3.8.10",
+    "gulp-concat": "^2.4.2",
+    "gulp-css-rebase-urls": "0.0.5",
+    "jake": "~0.5.16",
+    "ncp": "^1.0.1",
+    "node-uuid": "~1.4.3",
+    "uglify-js": "~>2.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ScanEx/APIBuild_1.2.git"
+  },
+  "keywords": [
+    "gis",
+    "leaflet",
+    "geomixer"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "whatwg-fetch": "^1.0.0"
+  }
+}

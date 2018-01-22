@@ -1,5 +1,5 @@
 /* @preserve
- * Leaflet 1.3.0+Detached: 1a38558f7b22f5ffacda5f6a1b8e60d54c361873.1a38558, a JS library for interactive maps. http://leafletjs.com
+ * Leaflet 1.3.1+Detached: ba6f97fff8647e724e4dfe66d2ed7da11f908989.ba6f97f, a JS library for interactive maps. http://leafletjs.com
  * (c) 2010-2017 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
@@ -9,7 +9,7 @@
 	(factory((global.L = {})));
 }(this, (function (exports) { 'use strict';
 
-var version = "1.3.0+HEAD.1a38558";
+var version = "1.3.1+HEAD.ba6f97f";
 
 /*
  * @namespace Util
@@ -5071,7 +5071,7 @@ var Layers = Control.extend({
 			this._update();
 		}
 
-		var obj = this._getLayer(stamp(e.target)) || e.layer;
+		var obj = this._getLayer(stamp(e.target));
 
 		// @namespace Map
 		// @section Layer events
@@ -10720,7 +10720,6 @@ var GridLayer = Layer.extend({
 		if (ielt9) { return; }
 
 		setOpacity(this._container, this.options.opacity);
-// console.log('_updateOpacity ', this.options.opacity);
 
 		var now = +new Date(),
 		    nextFrame = false,
@@ -10731,8 +10730,7 @@ var GridLayer = Layer.extend({
 			if (!tile.current || !tile.loaded) { continue; }
 
 			var fade = Math.min(1, (now - tile.loaded) / 200);
-//fade = 1;
-// console.log('_updateOpacity__ ', fade);
+
 			setOpacity(tile.el, fade);
 			if (fade < 1) {
 				nextFrame = true;
@@ -11255,7 +11253,6 @@ var GridLayer = Layer.extend({
 
 	_tileReady: function (coords, err, tile) {
 		if (!this._map) { return; }
-// console.log('_tileReady', coords, err, tile);
 
 		if (err) {
 			// @event tileerror: TileErrorEvent
@@ -11274,7 +11271,7 @@ var GridLayer = Layer.extend({
 
 		tile.loaded = +new Date();
 		if (this._map._fadeAnimated) {
-			setOpacity(tile.el, 1);
+			setOpacity(tile.el, 0);
 			cancelAnimFrame(this._fadeFrame);
 			this._fadeFrame = requestAnimFrame(this._updateOpacity, this);
 		} else {
@@ -11297,7 +11294,7 @@ var GridLayer = Layer.extend({
 			this._loading = false;
 			// @event load: Event
 			// Fired when the grid layer loaded all visible tiles.
-			this.fire('load', {coords: coords});
+			this.fire('load');
 
 			if (ielt9 || !this._map._fadeAnimated) {
 				requestAnimFrame(this._pruneTiles, this);
@@ -11501,7 +11498,7 @@ var TileLayer = GridLayer.extend({
 			s: this._getSubdomain(coords),
 			x: coords.x,
 			y: coords.y,
-			z: coords.z ? coords.z : this._getZoomForUrl()
+			z: this._getZoomForUrl()
 		};
 		if (this._map && !this._map.options.crs.infinite) {
 			var invertedY = this._globalTileRange.max.y - coords.y;
