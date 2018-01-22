@@ -1,0 +1,37 @@
+[submodule "external/es6-promise"]
+	path = external/es6-promise
+	url = git@github.com:ScanEx/es6-promise.git
+[submodule "external/fetch"]
+	path = external/fetch
+	url = git@github.com:ScanEx/fetch.git
+[submodule "external/Leaflet-GeoMixer"]
+	path = external/Leaflet-GeoMixer
+	url = git@github.com:ScanEx/Leaflet-GeoMixer1.2.git
+[submodule "external/gmxControls"]
+	path = external/gmxControls
+	url = git@github.com:ScanEx/gmxControls.git
+[submodule "external/gmxDrawing"]
+	path = external/gmxDrawing
+	url = git@github.com:ScanEx/gmxDrawing.git
+[submodule "external/Leaflet.gmxGrid"]
+	path = external/Leaflet.gmxGrid
+	url = git@github.com:ScanEx/Leaflet.gmxGrid.git
+	branch = 12
+[submodule "external/L.TileLayer.Mercator"]
+	path = external/L.TileLayer.Mercator
+	url = git@github.com:ScanEx/L.TileLayer.Mercator.git
+[submodule "external/Leaflet.imageTransform"]
+	path = external/Leaflet.imageTransform
+	url = git@github.com:ScanEx/Leaflet.imageTransform.git
+[submodule "external/Leaflet.gmxBaseLayersManager"]
+	path = external/Leaflet.gmxBaseLayersManager
+	url = git@github.com:ScanEx/Leaflet.gmxBaseLayersManager.git
+[submodule "external/Leaflet.contextmenu"]
+	path = external/Leaflet.contextmenu
+	url = git@github.com:ScanEx/Leaflet.contextmenu.git
+[submodule "external/GMXVirtualTileLayer"]
+	path = external/GMXVirtualTileLayer
+	url = git@github.com:ScanEx/GMXVirtualTileLayer.git
+[submodule "external/Leaflet.GeometryUtil"]
+	path = external/Leaflet.GeometryUtil
+	url = git@github.com:ScanEx/Leaflet.GeometryUtil.git
