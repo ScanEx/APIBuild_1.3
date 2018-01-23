@@ -5082,7 +5082,8 @@ var Layers = Control.extend({
 		// @event overlayremove: LayersControlEvent
 		// Fired when an overlay is deselected through the [layer control](#control-layers).
 		// @namespace Control.Layers
-		var type = obj.overlay ?
+		// var type = obj.overlay ?
+		var type = obj && obj.overlay ?		// Add by Geomixer
 			(e.type === 'add' ? 'overlayadd' : 'overlayremove') :
 			(e.type === 'add' ? 'baselayerchange' : null);
 
