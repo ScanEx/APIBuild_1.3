@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-1-23 13:18:58';
-var buildUUID = '1481b556bdfe4210b715e14c8a55fd1c';
+var buildDate = '2018-1-24 11:25:28';
+var buildUUID = 'acd3c9869ff94f9bbea348c3faef7c12';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -17122,8 +17122,8 @@ var gmxAPIutils = {
     },
 
     getPixelPoint: function(attr, coords) {
-        var gmx = attr.gmx,
-            mInPixel = gmx.mInPixel,
+        var topLeft = attr.topLeft,
+            mInPixel = topLeft.mInPixel,
             item = attr.item,
             currentStyle = item.currentStyle || item.parsedStyleKeys || {},
             style = attr.style || {},
@@ -17133,7 +17133,6 @@ var gmxAPIutils = {
             sy = currentStyle.sy || style.sy || 4,
             weight = currentStyle.weight || style.weight || 0,
             iconAnchor = currentStyle.iconAnchor || style.iconAnchor || null,
-			// topLeft = attr.topLeft,
 			px = attr.tpx,
             py = attr.tpy;
 
@@ -17275,6 +17274,8 @@ var gmxAPIutils = {
 
     pointToCanvas: function(attr) { // Точку в canvas
         var gmx = attr.gmx,
+			topLeft = attr.topLeft,
+            mInPixel = topLeft.mInPixel,
             pointAttr = attr.pointAttr,
             style = attr.style || {},
             item = attr.item,
@@ -17314,9 +17315,9 @@ var gmxAPIutils = {
             if ('opacity' in style) { ctx.globalAlpha = currentStyle.opacity || style.opacity; }
             if (gmx.transformFlag) {
 //						topLeft = attr.topLeft,
-				ctx.setTransform(gmx.mInPixel, 0, 0, gmx.mInPixel, -attr.tpx, attr.tpy);
+				ctx.setTransform(mInPixel, 0, 0, mInPixel, -attr.tpx, attr.tpy);
                 ctx.drawImage(image, px1, -py1, sx, sy);
-                ctx.setTransform(gmx.mInPixel, 0, 0, -gmx.mInPixel, -attr.tpx, attr.tpy);
+                ctx.setTransform(mInPixel, 0, 0, -mInPixel, -attr.tpx, attr.tpy);
             } else {
 				if (iconScale !== 1) {
 					sx *= iconScale;
@@ -17400,7 +17401,8 @@ var gmxAPIutils = {
         }
     },
     lineToCanvas: function(attr) {  // Lines in canvas
-        var gmx = attr.gmx,
+        var topLeft = attr.topLeft,
+            mInPixel = topLeft.mInPixel,
             coords = attr.coords,
             ctx = attr.ctx,
             item = attr.item,
@@ -17410,7 +17412,7 @@ var gmxAPIutils = {
         var lastX = null, lastY = null;
         ctx.beginPath();
         for (var i = 0, len = coords.length; i < len; i++) {
-            var p = gmxAPIutils.toPixels(coords[i], attr.tpx, attr.tpy, gmx.mInPixel, attr.topLeft),
+            var p = gmxAPIutils.toPixels(coords[i], attr.tpx, attr.tpy, mInPixel, attr.topLeft),
                 x = p[0],
                 y = p[1];
             if (lastX !== x || lastY !== y) {
@@ -17459,13 +17461,13 @@ var gmxAPIutils = {
             pixels.push(pixels1);
             hidden.push(hidden1);
         }
-        return {coords: pixels, hidden: hiddenFlag ? hidden : null, z: gmx.currentZoom};
+        return {coords: pixels, hidden: hiddenFlag ? hidden : null, z: attr.topLeft.tilePoint.z};
     },
 
     getRingPixels: function(attr) {
         if (attr.coords.length === 0) { return null; }
-        var gmx = attr.gmx,
-            mInPixel = gmx.mInPixel,
+        var topLeft = attr.topLeft,
+            mInPixel = topLeft.mInPixel,
             coords = attr.coords,
             hiddenLines = attr.hiddenLines || null,
 			// topLeft = attr.topLeft,
@@ -19605,7 +19607,7 @@ options
      tpx: X смещение тайла
      tpy: Y смещение тайла
      gmx: ссылка на layer._gmx
-        gmx.currentZoom
+        //gmx.currentZoom
         gmx.lastHover
         gmx.tileAttributeIndexes
      bgImage: растр для background
@@ -19662,6 +19664,7 @@ L.gmxUtil.drawGeoItem = function(geoItem, item, options, currentStyle, style) {
             tpx: options.tpx,
             tpy: options.tpy
         };
+
     if (geoType === 'POINT') {
         dattr.pointAttr = utils.getPixelPoint(dattr, geom.coordinates);
         if (!dattr.pointAttr) { return false; }   // point not in canvas tile
@@ -19701,7 +19704,7 @@ L.gmxUtil.drawGeoItem = function(geoItem, item, options, currentStyle, style) {
                 flagPixels = true;
 
 // console.log('pixelsMap', gmx.currentZoom, pixelsMap);
-            if (!pixelsMap || pixelsMap.z !== gmx.currentZoom) {
+            if (!pixelsMap || pixelsMap.z !== options.topLeft.tilePoint.z) {
                 pixelsMap = dataOption.pixels = utils.getCoordsPixels({
                     gmx: gmx,
                     coords: coords,
@@ -19763,7 +19766,7 @@ L.gmxUtil.drawGeoItem = function(geoItem, item, options, currentStyle, style) {
         if (geoType === 'LINESTRING') { coords = [coords]; }
         var st = item.currentStyle || item.parsedStyleKeys;
         var isIconPath = st.iconPath || st.iconPath;
-        var size = (item.currentStyle.maxSize || item.currentStyle.lineWidth) / gmx.mInPixel;
+        var size = (item.currentStyle.maxSize || item.currentStyle.lineWidth) / options.topLeft.mInPixel;
         for (i = 0, len = coords.length; i < len; i++) {
 			if (isIconPath) {
 				var arr = tbounds.clipPolyLine(coords[i], true, size);
@@ -20793,6 +20796,7 @@ var Observer = L.Class.extend({
             layerID: String           	// ID слоя view
 			target: String				// ключ назначения обсервера
             targetZoom: [Number]        // for zoom generalized type default(null)
+			topLeft: {}					// для screen
             needBbox: [Boolean=false]   // режим запросов списка тайлов по BBOX
         }
     */
@@ -22507,7 +22511,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 		skipTiles: 'All', // All, NotVisible, None
         iconsUrlReplace: [],
         showScreenTiles: false,
-		// updateWhenZooming: true,
+		updateWhenZooming: false,
 		// bubblingMouseEvents: false,
         clickable: true
     },
@@ -22538,7 +22542,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
             endDate: options.endDate,
             sortItems: options.sortItems || null,
             styles: options.styles || [],
-            tileSubscriptions: {},
+            rastersCache: {},
             shiftXlayer: 0,
             shiftYlayer: 0,
             renderHooks: [],
@@ -22551,17 +22555,17 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 
         this
 			.on('load', function() {						// завершена загрузка тайлов (все тайлы имеют признак - loaded)
-				if (!this._loading) {
-					for (var z in this._levels) {
-						if (z != this._tileZoom) {
 // console.log('load ', this._loading, this._tileZoom);
-							L.DomUtil.remove(this._levels[z].el);
-							this._removeTilesAtZoom(z);
-							this._onRemoveLevel(z);
-							delete this._levels[z];
-						}
-					}
-				}
+				// if (!this._loading) {
+					// for (var z in this._levels) {
+						// if (z != this._tileZoom) {
+							// L.DomUtil.remove(this._levels[z].el);
+							// this._removeTilesAtZoom(z);
+							// this._onRemoveLevel(z);
+							// delete this._levels[z];
+						// }
+					// }
+				// }
 			}, this)
 			.on('dateIntervalChanged', function() {
 // console.log('dateIntervalChanged ', this._loading, this._tileZoom, ev);
@@ -22597,7 +22601,6 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 		if (L.Browser.ielt9) { return; }
 
 		L.DomUtil.setOpacity(this._container, this.options.opacity);
-
 		var now = +new Date(),
 		    nextFrame = false,
 		    willPrune = false;
@@ -22629,9 +22632,189 @@ fade = 1;
 		}
 	},
 
-    _zoomEnd: function() {
+	_tileReady: function (coords, err, tile) {
+		if (!this._map) { return; }
+
+		if (err) {
+			// @event tileerror: TileErrorEvent
+			// Fired when there is an error loading a tile.
+			this.fire('tileerror', {
+				error: err,
+				tile: tile,
+				coords: coords
+			});
+		}
+
+		var key = this._tileCoordsToKey(coords);
+
+		tile = this._tiles[key];
+		if (!tile) { return; }
+
+		tile.loaded = +new Date();
+		if (this._map._fadeAnimated) {
+			L.DomUtil.setOpacity(tile.el, 1);
+			L.Util.cancelAnimFrame(this._fadeFrame);
+			this._fadeFrame = L.Util.requestAnimFrame(this._updateOpacity, this);
+		} else {
+			tile.active = true;
+			// this._pruneTiles();
+		}
+
+		if (!err) {
+			L.DomUtil.addClass(tile.el, 'leaflet-tile-loaded');
+
+			// @event tileload: TileEvent
+			// Fired when a tile loads.
+			this.fire('tileload', {
+				tile: tile.el,
+				coords: coords
+			});
+		}
+
+		if (this._noTilesToLoad()) {
+			this._loading = false;
+			// @event load: Event
+			// Fired when the grid layer loaded all visible tiles.
+			this.fire('load');
+
+			if (L.Browser.ielt9 || !this._map._fadeAnimated) {
+				L.Util.requestAnimFrame(this._pruneTiles, this);
+			} else {
+				// Wait a bit more than 0.2 secs (the duration of the tile fade-in)
+				// to trigger a pruning.
+				setTimeout(L.bind(this._pruneTiles, this), 250);
+			}
+		}
+	},
 /*
+	_setView: function (center, zoom, noPrune, noUpdate) {
+		var tileZoom = this._clampZoom(Math.round(zoom));
+		if ((this.options.maxZoom !== undefined && tileZoom > this.options.maxZoom) ||
+		    (this.options.minZoom !== undefined && tileZoom < this.options.minZoom)) {
+			tileZoom = undefined;
+		}
+ console.log('_setView ', zoom, tileZoom, this._loading, this._noTilesToLoad(), this._tileZoom, this._map._zoom, this._map.getZoom());
+
+		var tileZoomChanged = this.options.updateWhenZooming && (tileZoom !== this._tileZoom);
+
+		if (!noUpdate || tileZoomChanged) {
+
+			this._tileZoom = tileZoom;
+
+			if (this._abortLoading) {
+				this._abortLoading();
+			}
+
+			this._updateLevels();
+			this._resetGrid();
+
+			if (tileZoom !== undefined) {
+				this._update(center);
+			}
+
+			if (!noPrune) {
+				this._pruneTiles();
+			}
+
+			// Flag to prevent _updateOpacity from pruning tiles during
+			// a zoom anim or a pinch gesture
+			this._noPrune = !!noPrune;
+		}
+
+		this._setZoomTransforms(center, zoom);
+	},
+
+	_updateLevels: function () {
+
+		var zoom = this._tileZoom,
+		    maxZoom = this.options.maxZoom;
+
+		if (zoom === undefined) { return undefined; }
+		// if (zoom === undefined || this._loading) { return undefined; }
+ console.log('_updateLevels ', this._loading, this._noTilesToLoad(), this._tileZoom, this._map._zoom, this._map.getZoom());
+
+		for (var z in this._levels) {
+			if (this._levels[z].el.children.length || z === zoom) {
+				this._levels[z].el.style.zIndex = maxZoom - Math.abs(zoom - z);
+				this._onUpdateLevel(z);
+			} else {
+				L.DomUtil.remove(this._levels[z].el);
+				this._removeTilesAtZoom(z);
+				this._onRemoveLevel(z);
+				delete this._levels[z];
+			}
+		}
+
+		var level = this._levels[zoom],
+		    map = this._map;
+
+		if (!level) {
+			level = this._levels[zoom] = {};
+
+			level.el = L.DomUtil.create('div', 'leaflet-tile-container leaflet-zoom-animated', this._container);
+			level.el.style.zIndex = maxZoom;
+
+			level.origin = map.project(map.unproject(map.getPixelOrigin()), zoom).round();
+			level.zoom = zoom;
+
+			this._setZoomTransform(level, map.getCenter(), map.getZoom());
+
+			// force the browser to consider the newly added element for transition
+			L.Util.falseFn(level.el.offsetWidth);
+
+			this._onCreateLevel(level);
+		}
+
+		this._level = level;
+
+		return level;
+	},
+
+	_pruneTiles: function () {
+		if (!this._map) {
+		// if (!this._map || this._loading) {
+			return;
+		}
+ console.log('_pruneTiles ', this._loading, this._noTilesToLoad(), this._tileZoom, this._map._zoom, this._map.getZoom());
+
+		var key, tile;
+
+		var zoom = this._map.getZoom();
+		if (zoom > this.options.maxZoom ||
+			zoom < this.options.minZoom) {
+			this._removeAllTiles();
+			return;
+		}
+
+		for (key in this._tiles) {
+			tile = this._tiles[key];
+			tile.retain = tile.current;
+		}
+
+		for (key in this._tiles) {
+			tile = this._tiles[key];
+			if (tile.current && !tile.active) {
+				var coords = tile.coords;
+				if (!this._retainParent(coords.x, coords.y, coords.z, coords.z - 5)) {
+					this._retainChildren(coords.x, coords.y, coords.z, coords.z + 2);
+				}
+			}
+		}
+
+		for (key in this._tiles) {
+			if (!this._tiles[key].retain) {
+				this._removeTile(key);
+			}
+		}
+	},
+*/
+    _zoomStart: function() {
+        this._gmx.zoomstart = true;
+	},
+
+    _zoomEnd: function() {
         this._gmx.zoomstart = false;
+/*
 // console.log('_zoomEnd ', this._loading, this._noTilesToLoad(), this._tileZoom, this._map._zoom, this._map.getZoom());
 		if (!this._noTilesToLoad()) {
 			setTimeout(L.bind(this._repaintNotLoaded, this), 25);
@@ -22648,20 +22831,29 @@ fade = 1;
 		L.Util.requestAnimFrame(L.bind(this._repaintNotLoaded, this));
     },
 
+	_allLoaded: function () {
+		// this._updateLevels();
+		// this._pruneTiles();
+    },
+
 	_repaintNotLoaded: function () {
-		var key, tile;
+		var arr = [], key, tile;
 		for (key in this._tiles) {
 			tile = this._tiles[key];
 			if (!tile.loaded && tile.coords.z == this._tileZoom) {
 // console.log('_repaintNotLoaded ', key, this._loading, this._tileZoom, this._map._zoom, this._map.getZoom());
-				this.repaint(key);
-				// setTimeout(L.bind(this._repaintNotLoaded, this), 0);
-
-				L.Util.requestAnimFrame(L.bind(this._repaintNotLoaded, this));
-		// L.Util.cancelAnimFrame(this._fadeFrame);
-		// this._fadeFrame =  L.Util.requestAnimFrame(this._updateOpacity, this);
+				arr.push(key);
+				// this.repaint(key);
+				// L.Util.requestAnimFrame(L.bind(this._repaintNotLoaded, this));
 				break;
 			}
+		}
+		if (arr.length) {
+			this.repaint(arr);
+			L.Util.requestAnimFrame(L.bind(this._repaintNotLoaded, this));
+		} else {
+			this._gmx.rastersCache = {};
+			setTimeout(L.bind(this._allLoaded, this), 250);
 		}
 		//this._pruneTiles();
 		// this._updateOpacity();
@@ -22703,7 +22895,7 @@ fade = 1;
 				L.GridLayer.prototype.onAdd.call(this);
 			}
 
-			// map.on('zoomstart', this._zoomStart, this);
+			map.on('zoomstart', this._zoomStart, this);
 			map.on('zoomend', this._zoomEnd, this);
 			if (gmx.properties.type === 'Vector') {
 				map.on('moveend', this._moveEnd, this);
@@ -22750,7 +22942,7 @@ fade = 1;
         this._container = null;
         this._map = null;
 
-        // map.off('zoomstart', this._zoomStart, this);
+        map.off('zoomstart', this._zoomStart, this);
         map.off('zoomend', this._zoomEnd, this);
         this.off('stylechange', this._onStyleChange, this);
 
@@ -23496,15 +23688,15 @@ fade = 1;
 		gmx.currentZoom = level.zoom;
 // console.log('_updateShiftY ', gmx.currentZoom);
 
-		gmx.tileSize = gmxAPIutils.tileSizes[gmx.currentZoom];
+		gmx.tileSize = gmxAPIutils.tileSizes[level.zoom];
 		gmx.mInPixel = 256 / gmx.tileSize;
-		gmx.rastersDeltaY = gmx.RasterSRS === 3857 ? 0 : this._getShiftY(gmx.currentZoom, L.CRS.EPSG3395);
-        if (gmx.applyShift && this._map) {
-			gmx.deltaY = this._getShiftY(gmx.currentZoom);
-			gmx.shiftX = Math.floor(gmx.mInPixel * (gmx.shiftXlayer || 0));
-			gmx.shiftY = Math.floor(gmx.deltaY + gmx.mInPixel * (gmx.shiftYlayer || 0));
-			gmx.shiftPoint = new L.Point(gmx.shiftX, -gmx.shiftY);     // Сдвиг слоя
-        }
+		// gmx.rastersDeltaY = gmx.RasterSRS === 3857 ? 0 : this._getShiftY(gmx.currentZoom, L.CRS.EPSG3395);
+        // if (gmx.applyShift && this._map) {
+			// gmx.deltaY = this._getShiftY(gmx.currentZoom);
+			// gmx.shiftX = Math.floor(gmx.mInPixel * (gmx.shiftXlayer || 0));
+			// gmx.shiftY = Math.floor(gmx.deltaY + gmx.mInPixel * (gmx.shiftYlayer || 0));
+			// gmx.shiftPoint = new L.Point(gmx.shiftX, -gmx.shiftY);     // Сдвиг слоя
+        // }
     },
 
 	_getShiftY: function(zoom, crs) {		// Layer shift
@@ -23529,15 +23721,14 @@ fade = 1;
     __drawTile: function (ev) {
 		var coords = ev.coords,
 			zKey = this._tileCoordsToKey(coords),
-			tileElem = this._tiles[zKey],
-			zoom = this._tileZoom || this._map._zoom,
-            gmx = this._gmx;
+			tileElem = this._tiles[zKey];
 if (!tileElem) {
 	return;
 }
 
         var myLayer = this,
-			gmxTilePoint = gmxAPIutils.getTileNumFromLeaflet(coords, zoom);
+			zoom = this._tileZoom,
+            gmx = this._gmx;
 
         if (tileElem && !tileElem.promise) {
 			tileElem.loaded = 0;
@@ -23553,12 +23744,13 @@ if (!tileElem) {
                     type: 'resend',
                     layerID: gmx.layerID,
                     needBbox: gmx.needBbox,
+					topLeft: tileElem.screenTile.topLeft,
                     srs: gmx.srs,
                     target: 'screen',
 					targetZoom: myLayer.options.isGeneralized ? zoom : null,
 					dateInterval: gmx.layerType === 'VectorTemporal' ? [gmx.beginDate, gmx.endDate] : null,
                     active: false,
-                    bbox: gmx.styleManager.getStyleBounds(gmxTilePoint),
+                    bbox: gmx.styleManager.getStyleBounds(coords),
                     filters: ['clipFilter', 'userFilter_' + gmx.layerID, 'styleFilter', 'userFilter'].concat(filters),
                     callback: function(data) {
 // console.log('______', zKey, data);
@@ -23636,6 +23828,9 @@ function ScreenVectorTile(layer, tileElem) {
 
     this.tbounds = utils.getBoundsByTilePoint(this.ntp);
     this.topLeft = {
+		tilePoint: tilePoint,
+		tileSize: tileSize,
+		mInPixel: 256 / tileSize,
 		pix: {
 			px: 256 * tilePoint.x,
 			py: 256 * tilePoint.y
@@ -23677,54 +23872,59 @@ ScreenVectorTile.prototype = {
 		return new Promise(function(resolve) {
 			var tryLoad = function(gtp, crossOrigin) {
 				var rUrl = _this._getUrlFunction(gtp, item);
-
-				var tryHigherLevelTile = function(url) {
-					if (url) {
-						gmx.badTiles[url] = true;
-					}
-					if (gtp.z > 1) {
-						tryLoad({
-							x: Math.floor(gtp.x / 2),
-							y: Math.floor(gtp.y / 2),
-							z: gtp.z - 1
-						}, ''); // 'anonymous' 'use-credentials'
-					} else {
-						resolve({gtp: gtp});
-					}
-				};
-
-				if (gmx.badTiles[rUrl] || (gmx.maxNativeZoom && gmx.maxNativeZoom < gtp.z)) {
-					tryHigherLevelTile();
-					return;
-				}
-				var request = _this.rasterRequests[rUrl];
-				if (!request) {
-					if (gmx.rasterProcessingHook) {
-						crossOrigin = 'anonymous';
-					}
-					request = L.gmx.imageLoader.push(rUrl, {
-						tileRastersId: _this._uniqueID,
-						zoom: _this.zoom,
-						cache: true,
-						crossOrigin: gmx.crossOrigin || crossOrigin || ''
-					});
-					_this.rasterRequests[rUrl] = request;
+				if (gmx.rastersCache[rUrl]) {
+					resolve({gtp: gtp, image: gmx.rastersCache[rUrl]});
 				} else {
-					request.options.tileRastersId = _this._uniqueID;
-				}
-				request.promise.then(
-					function(imageObj) {
-						if (imageObj) {
-							resolve({gtp: gtp, image: imageObj});
+					var tryHigherLevelTile = function(url) {
+						if (url) {
+							gmx.badTiles[url] = true;
+						}
+						if (gtp.z > 1) {
+							tryLoad({
+								x: Math.floor(gtp.x / 2),
+								y: Math.floor(gtp.y / 2),
+								z: gtp.z - 1
+							}, ''); // 'anonymous' 'use-credentials'
 						} else {
+							resolve({gtp: gtp});
+						}
+					};
+
+					if (gmx.badTiles[rUrl] || (gmx.maxNativeZoom && gmx.maxNativeZoom < gtp.z)) {
+						tryHigherLevelTile();
+						return;
+					}
+
+					var request = _this.rasterRequests[rUrl];
+					if (!request) {
+						if (gmx.rasterProcessingHook) {
+							crossOrigin = 'anonymous';
+						}
+						request = L.gmx.imageLoader.push(rUrl, {
+							tileRastersId: _this._uniqueID,
+							zoom: _this.zoom,
+							cache: true,
+							crossOrigin: gmx.crossOrigin || crossOrigin || ''
+						});
+						_this.rasterRequests[rUrl] = request;
+					} else {
+						request.options.tileRastersId = _this._uniqueID;
+					}
+					request.promise.then(
+						function(imageObj) {
+							if (imageObj) {
+								gmx.rastersCache[rUrl] = imageObj;
+								resolve({gtp: gtp, image: imageObj});
+							} else {
+								tryHigherLevelTile(rUrl);
+							}
+						},
+						function() {
+							// console.log('tryHigherLevelTile111 ', rUrl);
 							tryHigherLevelTile(rUrl);
 						}
-					},
-					function() {
-						// console.log('tryHigherLevelTile111 ', rUrl);
-						tryHigherLevelTile(rUrl);
-					}
-				);
+					);
+				}
 			};
 
 			tryLoad(gtp);
@@ -23785,7 +23985,7 @@ ScreenVectorTile.prototype = {
 
     // get tiles parameters for shifted object
     _getShiftTilesArray: function (bounds, shiftX, shiftY) {
-        var mInPixel = this.gmx.mInPixel,
+        var mInPixel = this.topLeft.mInPixel,
             gmxTilePoint = this.gmxTilePoint,
             px = shiftX * mInPixel,
             py = shiftY * mInPixel,
@@ -24285,7 +24485,7 @@ ScreenVectorTile.prototype = {
 								id = geoItem.id,
 								item = gmx.dataManager.getItem(id);
 							if (item) {     // skip removed items   (bug with screen tile screenTileDrawPromise.cancel on hover repaint)
-								var style = gmx.styleManager.getObjStyle(item),
+								var style = gmx.styleManager.getObjStyle(item, _this.zoom),
 									hover = gmx.lastHover && gmx.lastHover.id === geoItem.id && style;
 
 								if (gmx.multiFilters) {
@@ -24553,15 +24753,15 @@ StyleManager.prototype = {
         return maxSize;
     },
 
-    getStyleBounds: function(gmxTilePoint) {
-        if (!gmxTilePoint) {
+    getStyleBounds: function(ntp) {
+        if (!ntp) {
             return gmxAPIutils.bounds();
         }
 
-        this._maxStyleSize = this._getMaxStyleSize(this.gmx.currentZoom);
+        this._maxStyleSize = this._getMaxStyleSize(ntp.z);
 
-        var mercSize = 2 * this._maxStyleSize * gmxAPIutils.tileSizes[gmxTilePoint.z] / 256; //TODO: check formula
-        return gmxAPIutils.getTileBounds(gmxTilePoint.x, gmxTilePoint.y, gmxTilePoint.z).addBuffer(mercSize);
+        var mercSize = 2 * this._maxStyleSize * gmxAPIutils.tileSizes[ntp.z] / 256; //TODO: check formula
+        return gmxAPIutils.getBoundsByTilePoint(ntp).addBuffer(mercSize);
     },
 
     //is any style is visible at given zoom?
@@ -24703,8 +24903,8 @@ StyleManager.prototype = {
         // return this._itemStyleParser(item, this.gmx.styleHook(item, hoverFlag));
     // },
 
-    getObjStyle: function(item) {
-        this._chkStyleFilter(item);
+    getObjStyle: function(item, zoom) {
+        this._chkStyleFilter(item, zoom);
         var style = this._styles[item.currentFilter],
             version;
 
@@ -24796,13 +24996,13 @@ StyleManager.prototype = {
         return out;
     },
 
-    _chkStyleFilter: function(item) {
+    _chkStyleFilter: function(item, zoom) {
         var gmx = this.gmx,
-            zoom = gmx.currentZoom,
             fnum = gmx.multiFilters ? -1 : item.currentFilter,
             curr = this._styles[fnum],
             needParse = !curr || curr.version !== item.styleVersion;
 
+		zoom = zoom || gmx.currentZoom;
         if (needParse || item._lastZoom !== zoom) {
             item.currentFilter = -1;
             item.multiFilters = [];
