@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-1-24 16:56:33';
-var buildUUID = '586c78ef2ca14765b279e1577d923749';
+var buildDate = '2018-1-25 15:35:29';
+var buildUUID = '9bc0658097684e8aa7459ca25929601c';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -31484,6 +31484,7 @@ L.Map.addInitHook(function () {
 
 L.GmxDrawing.Feature = L.LayerGroup.extend({
     options: {
+        smoothFactor: 0,
         mode: '' // add, edit
     },
     includes: L.Evented ? L.Evented.prototype : L.Mixin.Events,
@@ -31812,7 +31813,7 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
                 this._fill.addLayer(layer);
             }, this);
         } else {
-            obj.setStyle({weight: 0, fill: true, fillColor: '#0033ff'});
+            obj.setStyle({smoothFactor: 0, weight: 0, fill: true, fillColor: '#0033ff'});
             this._fill.addLayer(obj);
         }
         if (!this._fill._map) {
@@ -31887,19 +31888,22 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         this.options.mode = 'edit';
         var type = this.options.type;
         if (type !== 'Point') {
-            for (var i = 0, len = this.rings.length; i < len; i++) {
-                var it = this.rings[i];
-                it.ring.options.editable = this.options.editable;
-                it.ring.setEditMode();
-                for (var j = 0, len1 = it.holes.length; j < len1; j++) {
-                    var hole = it.holes[j];
-                    hole.options.editable = this.options.editable;
-                    hole.setEditMode();
-                }
-            }
-            var geojson = L.geoJson(this.toGeoJSON());
+            // for (var i = 0, len = this.rings.length; i < len; i++) {
+                // var it = this.rings[i];
+                // it.ring.options.editable = this.options.editable;
+                // it.ring.setEditMode();
+                // for (var j = 0, len1 = it.holes.length; j < len1; j++) {
+                    // var hole = it.holes[j];
+                    // hole.options.editable = this.options.editable;
+                    // hole.setEditMode();
+                // }
+            // }
+            var geojson = L.geoJson(this.toGeoJSON()),
+				items = geojson.getLayers();
             this.options.editable = true;
-            this._initialize(this._parent, geojson);
+			if (items.length) {
+				this._initialize(this._parent, items[0]);
+			}
         }
         return this;
     },
@@ -31963,6 +31967,7 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         this.rings = [];
         this.mode = '';
         this._fill = L.featureGroup();
+        this._fill.options.smoothFactor = 0;
 
         if (this.options.editable) {
             var arr = obj.getLayers ? L.GmxDrawing.utils._getLastObject(obj).getLayers() : [obj];
