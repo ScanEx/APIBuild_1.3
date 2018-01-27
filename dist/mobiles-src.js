@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-1-25 15:35:24';
-var buildUUID = '9bc0658097684e8aa7459ca25929601c';
+var buildDate = '2018-1-27 14:39:09';
+var buildUUID = '9ec759027bec440097ee559fe24778bd';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22510,6 +22510,9 @@ L.gmx.VectorLayer = L.GridLayer.extend({
         useWebGL: false,
 		skipTiles: 'All', // All, NotVisible, None
         iconsUrlReplace: [],
+        cacheRasters: true,
+        cacheQuicklooks: true,
+        clearCacheOnLoad: true,
         showScreenTiles: false,
 		updateWhenZooming: false,
 		// bubblingMouseEvents: false,
@@ -22542,45 +22545,22 @@ L.gmx.VectorLayer = L.GridLayer.extend({
             endDate: options.endDate,
             sortItems: options.sortItems || null,
             styles: options.styles || [],
-            rastersCache: {},
             shiftXlayer: 0,
             shiftYlayer: 0,
             renderHooks: [],
             preRenderHooks: [],
             _needPopups: {}
         };
+        if (options.cacheQuicklooks) {			// cache quicklooks for CR
+            this._gmx.quicklooksCache = {};
+        }
+        if (options.cacheRasters) {				// cache rasters for CR
+            this._gmx.rastersCache = {};
+        }
         if (options.crossOrigin) {
             this._gmx.crossOrigin = options.crossOrigin;
         }
-
-        this
-			.on('dateIntervalChanged', function() {
-				// console.log('dateIntervalChanged ', this._loading, this._tileZoom, ev);
-				setTimeout(L.bind(this._repaintNotLoaded, this), 25);
-			}, this)
-			// .on('load', function() {						// завершена загрузка тайлов (все тайлы имеют признак - loaded)
-			// }, this)
-			// .on('loading', function(ev) {						// начата загрузка тайлов (если нет не отрисованных тайлов)
-			// }, this)
-			// .on('tileload', function(ev) {
-			// }, this) 		// тайл (ev.coords) загружен
-			// .on('tileerror', function(ev) {}, this) 		// тайл (ev.coords) с ошибкой
-			// .on('tileunload', function(ev) {				// тайл (ev.coords) удален
-				// if (this._gmx.dataManager) {
-					// this._gmx.dataManager.removeObserver(this._tileCoordsToKey(ev.coords));
-				// }
-			// }, this)
-			.on('tileloadstart', function(ev) {				// тайл (ev.coords) загружается
-				var key = this._tileCoordsToKey(ev.coords),
-					tLink = this._tiles[key];
-				// console.log('tileloadstart ', this._loading, this._tileZoom, ev);
-
-				tLink.loaded = 0;
-				tLink.screenTile = new ScreenVectorTile(this, tLink);
-				L.Util.requestAnimFrame(L.bind(this.__drawTile, this, ev));
-			}, this);
 	},
-
     _zoomStart: function() {
         this._gmx.zoomstart = true;
 	},
@@ -22599,60 +22579,53 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 	_repaintNotLoaded: function () {
 		if (!this._map) { return; }
 
-		var arr = [], key, tile;
+		var arr = [], key, tile, z;
 		for (key in this._tiles) {
 			tile = this._tiles[key];
-			if (!tile.loaded && tile.coords.z == this._tileZoom) {
-// console.log('_repaintNotLoaded ', key, this._loading, this._tileZoom, this._map._zoom, this._map.getZoom());
-				arr.push(key);
-				break;
+			z = tile.coords.z;
+			if (z == this._tileZoom) {
+				if (!tile.loaded) {
+					arr.push(key);
+					//break;
+				} else if (tile.count) {
+					if (!tile.el.parentNode && this._levels[z]) {
+						this._levels[z].appendChild(tile.el);
+					}
+				} else if (tile.el.parentNode) {
+					tile.el.parentNode.removeChild(tile.el);
+				}
 			}
 		}
 		if (arr.length) {
 			this.repaint(arr);
 			L.Util.requestAnimFrame(L.bind(this._repaintNotLoaded, this));
-		} else {
+		} else if (this.options.clearCacheOnLoad) {
 			this._gmx.rastersCache = {};
+			this._gmx.quicklooksCache = {};
 		}
     },
 
 	//block: extended from L.GridLayer
+	_setView: function (center, zoom, noPrune, noUpdate) {
+		if (!this._map) { return; }
+		L.GridLayer.prototype._setView.call(this, center, zoom, noPrune, noUpdate);
+	},
+
 	_updateOpacity: function () {
 		if (!this._map) { return; }
 
 		// IE doesn't inherit filter opacity properly, so we're forced to set it on tiles
 		if (L.Browser.ielt9) { return; }
-
-		L.DomUtil.setOpacity(this._container, this.options.opacity);
-		var now = +new Date(),
-		    nextFrame = false,
-		    willPrune = false;
-
+		var willPrune = false;
 		for (var key in this._tiles) {
 			var tile = this._tiles[key];
 			if (!tile.current || !tile.loaded) { continue; }
-
-			var fade = Math.min(1, (now - tile.loaded) / 200);
-fade = 1;
-			L.DomUtil.setOpacity(tile.el, fade);
-			if (fade < 1) {
-				nextFrame = true;
-			} else {
-				if (tile.active) {
-					willPrune = true;
-				} else {
-					this._onOpaqueTile(tile);
-				}
-				tile.active = true;
+			if (tile.active) {
+				willPrune = true;
 			}
+			tile.active = true;
 		}
-
 		if (willPrune && !this._noPrune) { this._pruneTiles(); }
-
-		if (nextFrame) {
-			 L.Util.cancelAnimFrame(this._fadeFrame);
-			this._fadeFrame =  L.Util.requestAnimFrame(this._updateOpacity, this);
-		}
 	},
 
 	_tileReady: function (coords, err, tile) {
@@ -22675,7 +22648,7 @@ fade = 1;
 
 		tile.loaded = +new Date();
 		if (this._map._fadeAnimated) {
-			L.DomUtil.setOpacity(tile.el, 1);
+			// L.DomUtil.setOpacity(tile.el, 1);
 			L.Util.cancelAnimFrame(this._fadeFrame);
 			this._fadeFrame = L.Util.requestAnimFrame(this._updateOpacity, this);
 		} else {
@@ -22726,11 +22699,25 @@ fade = 1;
 		//console.log('_onCreateLevel ', level);
     },
 
+	_initContainer: function () {
+		if (this._container) { return; }
+
+		this._container = L.DomUtil.create('div', 'leaflet-layer ' + (this.options.className || ''));
+		this._updateZIndex();
+
+		this.getPane(this.options.pane).appendChild(this._container);
+	},
+	getEvents: function () {
+		var events = L.GridLayer.prototype.getEvents.call(this);
+		return events;
+	},
+
     onAdd: function(map) {
 		map = map || this._map;
         if (map.options.crs !== L.CRS.EPSG3857 && map.options.crs !== L.CRS.EPSG3395) {
             throw 'GeoMixer-Leaflet: map projection is incompatible with GeoMixer layer';
         }
+		this.beforeAdd(map);
 
         var gmx = this._gmx;
 
@@ -22740,68 +22727,84 @@ fade = 1;
         gmx.currentZoom = map.getZoom();
 		this._levels = {}; // need init before styles promise resolved
 		this._tiles = {};
+		this._initContainer();
 
 		gmx.styleManager.promise.then(function () {
-			if (!this._heatmap && !this._clusters) {
-				L.GridLayer.prototype.onAdd.call(this);
-			}
-
 			map.on('zoomstart', this._zoomStart, this);
 			map.on('zoomend', this._zoomEnd, this);
 			if (gmx.properties.type === 'Vector') {
 				map.on('moveend', this._moveEnd, this);
-			}
-			if (this.options.clickable === false) {
-				this._container.style.pointerEvents = 'none';
 			}
 			if (gmx.balloonEnable && !this._popup) { this.bindPopup(''); }
 			this.on('stylechange', this._onStyleChange, this);
 			this.on('versionchange', this._onVersionChange, this);
 
 			// this._zIndexOffsetCheck();
+			if (this._map) {
+				if (this.getEvents) {
+					var events = this.getEvents();
+					map.on(events, this);
+					this.once('remove', function () {
+						map.off(events, this);
+					}, this);
+				}
 
+				this._resetView();
+				this._update();
+			}
 			L.gmx.layersVersion.add(this);
 			this.fire('add');
 		}.bind(this));
         gmx.styleManager.initStyles();
+		this
+			.on('dateIntervalChanged', this._checkNotLoaded, this)
+			.on('tileloadstart', this._tileloadstart, this);
+		if (this.options.clickable === false) {
+			this._container.style.pointerEvents = 'none';
+		}
+		this._resetView();
+		this._update();
+   },
+
+    _checkNotLoaded: function() {
+		setTimeout(L.bind(this._repaintNotLoaded, this), 25);
+    },
+
+    _tileloadstart: function(ev) {				// тайл (ev.coords) загружается
+		var key = this._tileCoordsToKey(ev.coords),
+			tLink = this._tiles[key];
+		// console.log('tileloadstart ', this._loading, this._tileZoom, ev);
+
+		tLink.loaded = 0;
+		tLink.screenTile = new ScreenVectorTile(this, tLink);
+		L.Util.requestAnimFrame(L.bind(this.__drawTile, this, ev));
     },
 
     onRemove: function(map) {
-        if (this._container && this._container.parentNode) {
-            this._container.parentNode.removeChild(this._container);
-        }
-
-        map.off({
-            'viewreset': this._reset,
-            'moveend': this._update
-        }, this);
-
-        if (this._animated) {
-            map.off({
-                'zoomanim': this._animateZoom,
-                'zoomend': this._endZoomAnim
-            }, this);
-        }
-
-        if (!this.options.updateWhenIdle) {
-            map.off('move', this._limitedUpdate, this);
-        }
         var gmx = this._gmx;
+		this
+			.off('stylechange', this._onStyleChange, this)
+			.off('versionchange', this._onVersionChange, this)
+			.off('dateIntervalChanged', this._checkNotLoaded, this)
+			.off('tileloadstart', this._tileloadstart, this);
+		map
+			.off('zoomstart', this._zoomStart, this)
+			.off('zoomend', this._zoomEnd, this)
+			.off('moveend', this._moveEnd, this);
+
+		this._removeAllTiles();
+		if (this._container) { L.DomUtil.remove(this._container); }
+		map._removeZoomLimit(this);
+		this._container = null;
+		this._tileZoom = undefined;
+
 		if (gmx.labelsLayer) {	// удалить из labelsLayer
 			map._labelsLayer.remove(this);
 		}
 
-        this._container = null;
         this._map = null;
 
-        map.off('zoomstart', this._zoomStart, this);
-        map.off('zoomend', this._zoomEnd, this);
-        this.off('stylechange', this._onStyleChange, this);
-
         delete gmx.map;
-        if (gmx.properties.type === 'Vector') {
-            map.off('moveend', this._moveEnd, this);
-        }
         if (gmx.dataManager && !gmx.dataManager.getActiveObserversCount()) {
             L.gmx.layersVersion.remove(this);
         }
@@ -22823,6 +22826,77 @@ fade = 1;
             this._container.style.zIndex = zIndexOffset + zIndex;
         }
     },
+	// Private method to load tiles in the grid's active zoom level according to map bounds
+	_update: function (center) {
+		var map = this._map;
+		if (!map) { return; }
+		var zoom = this._clampZoom(map.getZoom());
+
+		if (center === undefined) { center = map.getCenter(); }
+		if (this._tileZoom === undefined) { return; }	// if out of minzoom/maxzoom
+
+		var pixelBounds = this._getTiledPixelBounds(center),
+		    tileRange = this._pxBoundsToTileRange(pixelBounds),
+		    // tileCenter = tileRange.getCenter(),
+		    queue = [],
+		    margin = this.options.keepBuffer,
+		    noPruneRange = new L.Bounds(tileRange.getBottomLeft().subtract([margin, -margin]),
+		                              tileRange.getTopRight().add([margin, -margin]));
+
+		// Sanity check: panic if the tile range contains Infinity somewhere.
+		if (!(isFinite(tileRange.min.x) &&
+		      isFinite(tileRange.min.y) &&
+		      isFinite(tileRange.max.x) &&
+		      isFinite(tileRange.max.y))) { throw new Error('Attempted to load an infinite number of tiles'); }
+
+		for (var key in this._tiles) {
+			var c = this._tiles[key].coords;
+			if (c.z !== this._tileZoom || !noPruneRange.contains(new L.Point(c.x, c.y))) {
+				this._tiles[key].current = false;
+			}
+		}
+
+		// _update just loads more tiles. If the tile zoom level differs too much
+		// from the map's, let _setView reset levels and prune old tiles.
+		if (Math.abs(zoom - this._tileZoom) > 1) { this._setView(center, zoom); return; }
+
+		// create a queue of coordinates to load tiles from
+		var i, j, len, coords;
+		for (j = tileRange.min.y; j <= tileRange.max.y; j++) {
+			for (i = tileRange.min.x; i <= tileRange.max.x; i++) {
+				coords = new L.Point(i, j);
+				coords.z = this._tileZoom;
+
+				if (!this._isValidTile(coords)) { continue; }
+
+				var tile = this._tiles[this._tileCoordsToKey(coords)];
+				if (tile) {
+					tile.current = true;
+				} else {
+					queue.push(coords);
+				}
+			}
+		}
+
+		// sort tile queue to load tiles in order of their distance to center
+		// queue.sort(function (a, b) {
+			// return a.distanceTo(tileCenter) - b.distanceTo(tileCenter);
+		// });
+
+		if (queue.length !== 0) {
+			// if it's the first batch of tiles to load
+			if (!this._loading) {
+				this._loading = true;
+				// @event loading: Event
+				// Fired when the grid layer starts loading tiles.
+				this.fire('loading');
+			}
+
+			for (i = 0, len = queue.length; i < len; i++) {
+				this._addTile(queue[i]);
+			}
+		}
+	},
 
 /*eslint-disable no-unused-vars */
 	createTile: function(coords , done) {
@@ -22831,10 +22905,41 @@ fade = 1;
 		var size = this.getTileSize();
 		tile.width = size.x;
 		tile.height = size.y;
-		tile.style.opacity = this.options.opacity;
+		tile.style.width = size.x + 'px';
+		tile.style.height = size.y + 'px';
+		tile.onselectstart = L.Util.falseFn;
+		tile.onmousemove = L.Util.falseFn;
+
+		// without this hack, tiles disappear after zoom on Chrome for Android
+		// https://github.com/Leaflet/Leaflet/issues/2078
+		if (L.Browser.android && !L.Browser.android23) {
+			tile.style.WebkitBackfaceVisibility = 'hidden';
+		}
+
+		// tile.style.opacity = this.options.opacity;
 		return tile;
     },
 /*eslint-enable */
+
+	_addTile: function (coords) {
+		var tile = this.createTile(this._wrapCoords(coords), L.bind(this._tileReady, this, coords)),
+			key = this._tileCoordsToKey(coords);
+
+		// save tile in cache
+		this._tiles[key] = {
+			el: tile,
+			coords: coords,
+			current: true
+		};
+
+		// container.appendChild(tile);
+		// @event tileloadstart: TileEvent
+		// Fired when a tile is requested and starts loading.
+		this.fire('tileloadstart', {
+			tile: tile,
+			coords: coords
+		});
+	},
 
     //block: public interface
     initFromDescription: function(ph) {
@@ -23168,16 +23273,17 @@ fade = 1;
         }
     },
 
-    gmxGetCanvasTile: function (tilePoint) {
-        var zKey = this._tileCoordsToKey(tilePoint);
-        return this._tiles[zKey];
-    },
+    // gmxGetCanvasTile: function (tilePoint) {
+        // var zKey = this._tileCoordsToKey(tilePoint);
+        // return this._tiles[zKey];
+    // },
 
     appendTileToContainer: function (tileLink) {
 		if (this._tileZoom === tileLink.coords.z) {
 			var tilePos = this._getTilePos(tileLink.coords),
 				tile = tileLink.el,
-				cont = this._level ? this._level.el : this._tileContainer;
+				levelEl = this._levels[tileLink.coords.z],
+				cont = levelEl ? levelEl.el : this._tileContainer;
 
 			cont.appendChild(tile);
 			L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome || L.Browser.android23);
@@ -23623,6 +23729,7 @@ L.Map.addInitHook(function () {
 // Single tile on screen with vector data
 function ScreenVectorTile(layer, tileElem) {
     this.layer = layer;
+	this.tileElem = tileElem;
 	this.tile = tileElem.el;
 	var tilePoint = tileElem.coords,
 		zoom = tilePoint.z,
@@ -23693,7 +23800,7 @@ ScreenVectorTile.prototype = {
 		return new Promise(function(resolve) {
 			var tryLoad = function(gtp, crossOrigin) {
 				var rUrl = _this._getUrlFunction(gtp, item);
-				if (gmx.rastersCache[rUrl]) {
+				if (gmx.rastersCache && gmx.rastersCache[rUrl]) {
 					resolve({gtp: gtp, image: gmx.rastersCache[rUrl]});
 				} else {
 					var tryHigherLevelTile = function(url) {
@@ -23734,7 +23841,9 @@ ScreenVectorTile.prototype = {
 					request.promise.then(
 						function(imageObj) {
 							if (imageObj) {
-								gmx.rastersCache[rUrl] = imageObj;
+								if (gmx.rastersCache) {
+									gmx.rastersCache[rUrl] = imageObj;
+								}
 								resolve({gtp: gtp, image: imageObj});
 							} else {
 								tryHigherLevelTile(rUrl);
@@ -23908,7 +24017,6 @@ ScreenVectorTile.prototype = {
 			new Promise(function(resolve1) {
 				if (isTiles) {
 					var dataOption = geo.dataOption || {},
-						// tileToLoadPoints = isShift ? this._getShiftTilesArray(dataOption.bounds, shiftX, shiftY) : [ntp];
 						tileToLoadPoints = this._chkRastersByItemIntersect(isShift ? this._getShiftTilesArray(dataOption.bounds, shiftX, shiftY) : [ntp], geo);
 
 					var cnt = tileToLoadPoints.length,
@@ -24019,20 +24127,24 @@ ScreenVectorTile.prototype = {
 					if (url) {
 						if (gmx.sessionKey) { url += (url.indexOf('?') === -1 ? '?' : '&') + 'key=' + encodeURIComponent(gmx.sessionKey); }
 
-						var request = this.rasterRequests[url];
-						if (!request) {
-							request = L.gmx.imageLoader.push(url, {
-								tileRastersId: _this._uniqueID,
-								crossOrigin: gmx.crossOrigin || 'anonymous'
-							});
-							this.rasterRequests[url] = request;
+						if (gmx.quicklooksCache && gmx.quicklooksCache[url]) {
+							resolve1(gmx.quicklooksCache[url]);
 						} else {
-							request.options.tileRastersId = this._uniqueID;
-						}
+							var request = this.rasterRequests[url];
+							if (!request) {
+								request = L.gmx.imageLoader.push(url, {
+									tileRastersId: _this._uniqueID,
+									crossOrigin: gmx.crossOrigin || 'anonymous'
+								});
+								this.rasterRequests[url] = request;
+							} else {
+								request.options.tileRastersId = this._uniqueID;
+							}
 
-						// in fact, we want to return request.def, but need to do additional action during cancellation.
-						// so, we consctruct new promise and add pipe it with request.def
-						request.promise.then(resolve1, resolve1);
+							// in fact, we want to return request.def, but need to do additional action during cancellation.
+							// so, we consctruct new promise and add pipe it with request.def
+							request.promise.then(resolve1, resolve1);
+						}
 					} else {
 						resolve1();
 					}
@@ -24040,10 +24152,12 @@ ScreenVectorTile.prototype = {
 				}
 			}.bind(this)).then(function(img) {
 				if (isTiles) {
-					// rasters[idr] = resCanvas;
 					resolve();
 				} else {
 					if (img) {
+						if (gmx.quicklooksCache) {
+							gmx.quicklooksCache[url] = img;
+						}
 						var imgAttr = {
 							gmx: gmx,
 							topLeft: _this.topLeft,
@@ -24057,17 +24171,17 @@ ScreenVectorTile.prototype = {
 						}
 						var prepareItem = function(imageElement) {
 							var promise = _this._rasterHook({
-									topLeft: _this.topLeft,
-									geoItem: geo,
-									res: resCanvas,
-									image: itemImageProcessingHook ? itemImageProcessingHook(imageElement, imgAttr) : imageElement,
-									destinationTilePoint: gmxTilePoint,
-									url: url
-								}),
-								then = function() {
-									rasters[idr] = resCanvas;
-									resolve();
-								};
+								topLeft: _this.topLeft,
+								geoItem: geo,
+								res: resCanvas,
+								image: itemImageProcessingHook ? itemImageProcessingHook(imageElement, imgAttr) : imageElement,
+								destinationTilePoint: gmxTilePoint,
+								url: url
+							}),
+							then = function() {
+								rasters[idr] = resCanvas;
+								resolve();
+							};
 							if (promise) {
 								if (promise.then) {
 									promise.then(then);
@@ -24206,15 +24320,12 @@ ScreenVectorTile.prototype = {
     },
 
     destructor: function () {
-		// if (this.currentDrawPromise) {
-			// this.currentDrawPromise.reject();
-			if (this._preRenderPromise) {
-				this._preRenderPromise.reject();        // cancel preRenderHooks chain if exists
-			}
-			if (this._renderPromise) {
-				this._renderPromise.reject();           // cancel renderHooks chain if exists
-			}
-		// }
+		if (this._preRenderPromise) {
+			this._preRenderPromise.reject();        // cancel preRenderHooks chain if exists
+		}
+		if (this._renderPromise) {
+			this._renderPromise.reject();           // cancel renderHooks chain if exists
+		}
         this._cancelRastersPromise();
         this._clearCache();
     },
@@ -24236,18 +24347,9 @@ ScreenVectorTile.prototype = {
     },
 
     drawTile: function (data) {
-        // if (this.currentDrawPromise) {
-			this.destructor();
-		// }
+		this.destructor();
 		return new Promise(function(resolve, reject) {
-			// this.currentDrawPromise = {
-				// resolve: resolve,
-				// reject: reject
-			// };
 			var geoItems = this._chkItems(data);
-			// var error = function() {
-				// reject({count: 0});
-			// }.bind(this);
 			var result = function() {
 				resolve({count: geoItems.length});
 			}.bind(this);
@@ -24256,7 +24358,6 @@ ScreenVectorTile.prototype = {
 			this._uniqueID++;       // count draw attempt
 
 			if (geoItems) {
-				// var tileLink = this.layer.gmxGetCanvasTile(this.tilePoint),
 				var tile = this.tile,
 					ctx = tile.getContext('2d'),
 					gmx = this.gmx,
@@ -24301,8 +24402,6 @@ ScreenVectorTile.prototype = {
 						}
 					});
 					Promise.all(fArr).then(function() {
-					// Promise.all(this._getHooksPromises(gmx.preRenderHooks, bgImage, hookInfo)).then(function(hookBgImage) {
-						// bgImage = hookBgImage || bgImage;
 						if (bgImage) { dattr.bgImage = bgImage; }
 						//ctx.save();
 						for (var i = 0, len = geoItems.length; i < len; i++) {
@@ -24330,6 +24429,7 @@ ScreenVectorTile.prototype = {
 						_this.rasters = {}; // clear rasters
 						Promise.all(_this._getHooksPromises(gmx.renderHooks, tile, hookInfo)).then(result, reject);
 					}, reject);
+					_this.layer.appendTileToContainer(_this.tileElem);
 				};
 
 				if (this.showRaster) {
@@ -28301,6 +28401,7 @@ L.gmx.ExternalLayer = L.Class.extend({
                 arr = [];
             }
             if (data.added) {
+				var tilesCRS = this.parentLayer.options.tilesCRS || L.Projection.Mercator;
                 for (i = 0, len = data.added.length; i < len; i++) {
                     vectorTileItem = data.added[i];
                     id = vectorTileItem.id;
@@ -28317,7 +28418,7 @@ L.gmx.ExternalLayer = L.Class.extend({
                         var geo = item[item.length - 1],
                             parsedStyle = vectorTileItem.item.parsedStyleKeys,
                             p = geo.coordinates,
-                            latlng = L.Projection.Mercator.unproject({x: p[0], y: p[1]}),
+                            latlng = tilesCRS.unproject({x: p[0], y: p[1]}),
                             opt = {
                                 properties: vectorTileItem.properties,
                                 mPoint: p
