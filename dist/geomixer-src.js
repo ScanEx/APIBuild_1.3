@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-1-27 19:53:57';
-var buildUUID = '7beca5b56cb94ce4aeea53f79def46a8';
+var buildDate = '2018-1-28 09:13:48';
+var buildUUID = '82ac0985c4774a8bb3b5ac0d9a18f8de';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -23864,8 +23864,10 @@ ScreenVectorTile.prototype = {
 
     // default rasterHook: res - result canvas other parameters as http://www.w3schools.com/tags/canvas_drawimage.asp
     _defaultRasterHook: function (res, image, sx, sy, sw, sh, dx, dy, dw, dh) {
-        var ptx = res.getContext('2d');
-        ptx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+		if (image) {
+			var ptx = res.getContext('2d');
+			ptx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+		}
     },
 
     // get pixels parameters for shifted object
