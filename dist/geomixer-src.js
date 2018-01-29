@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-1-28 09:13:48';
-var buildUUID = '82ac0985c4774a8bb3b5ac0d9a18f8de';
+var buildDate = '2018-1-29 11:39:45';
+var buildUUID = '190405fa2c7a43b0a298d2d29fdfcd7c';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -21914,6 +21914,16 @@ var DataManager = L.Class.extend({
         return this._observers[id];
     },
 
+    removeScreenObservers: function() {
+        for (var k in this._observers) {
+            var observer = this._observers[k];
+            if (observer.target === 'screen') {
+				observer.deactivate();
+				this.removeObserver(k);
+			}
+        }
+    },
+
     removeObserver: function(id) {
         if (this._observers[id]) {
             this._observerTileLoader.removeObserver(id);
@@ -22808,13 +22818,17 @@ L.gmx.VectorLayer = L.GridLayer.extend({
    },
 
     onRemove: function(map) {
+        var gmx = this._gmx,
+			dm = gmx.dataManager;
+        if (dm) {
+			dm.removeScreenObservers();
+		}
 		this._removeAllTiles();
 		if (this._container) { L.DomUtil.remove(this._container); }
 		map._removeZoomLimit(this);
 		this._container = null;
 		this._tileZoom = undefined;
 
-        var gmx = this._gmx;
 		if (gmx.labelsLayer) {	// удалить из labelsLayer
 			map._labelsLayer.remove(this);
 		}
@@ -22824,8 +22838,8 @@ L.gmx.VectorLayer = L.GridLayer.extend({
         gmx.rastersCache = {};
         this._map = null;
         delete gmx.map;
-        if (gmx.dataManager && !gmx.dataManager.getActiveObserversCount()) {
-            L.gmx.layersVersion.remove(this);
+        if (dm && !dm.getActiveObserversCount()) {
+			L.gmx.layersVersion.remove(this);
         }
         this.fire('remove');
     },
