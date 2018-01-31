@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-1-29 11:39:40';
-var buildUUID = '190405fa2c7a43b0a298d2d29fdfcd7c';
+var buildDate = '2018-1-31 10:07:52';
+var buildUUID = '5bfae49cb1dc4ce7b6b3948ca5467623';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -17777,7 +17777,7 @@ var gmxAPIutils = {
 
         var pos;
         if (crs == 3857) {
-            pos = L.Projection.SphericalMercator.unproject(new L.Point(y, x)._divideBy(gmxAPIutils.rMajor));
+            pos = L.CRS.Simple.unproject(new L.Point(y, x));
             x = pos.lng;
             y = pos.lat;
         }
@@ -21740,9 +21740,11 @@ var DataManager = L.Class.extend({
                     if (!observer.intersects(dataOption.bounds)) { continue; }
 
                     var it = data[i],
-                        id = it[0],
+						geom = it[it.length - 1];
+                    if (!observer.intersectsWithGeometry(geom)) { continue; }
+
+                    var id = it[0],
                         item = _this.getItem(id),
-						geom = it[it.length - 1],
                         isFiltered = false;
 
                     for (var f = 0; f < filters.length; f++) {
