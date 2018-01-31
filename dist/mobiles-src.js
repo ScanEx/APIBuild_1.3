@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-1-31 10:07:52';
-var buildUUID = '5bfae49cb1dc4ce7b6b3948ca5467623';
+var buildDate = '2018-1-31 10:26:42';
+var buildUUID = '3f53ef2ee1a94630a94cdfbbe0ed8368';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -17777,7 +17777,7 @@ var gmxAPIutils = {
 
         var pos;
         if (crs == 3857) {
-            pos = L.CRS.Simple.unproject(new L.Point(y, x));
+            pos = L.CRS.Simple.unproject(new L.Point(x, y));
             x = pos.lng;
             y = pos.lat;
         }
