@@ -70,6 +70,8 @@ gulp.task('gmx-pub', [], function(cb) {
 			}
 		});
 		outBuild(distPath + 'geomixer', newJs, newCss);
+		var workerFile = 'ImageBitmapLoader-worker.js';
+		ncp(external + 'Leaflet-GeoMixer/dist/' + workerFile, distPath + workerFile);
 		
 		var now = Date.now();
 		fs.writeFileSync(distPath + 'version.js', 'var gmxVersion = ' + JSON.stringify({
