@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-4 17:27:19';
-var buildUUID = 'f973663db769418b9fc5a0d1ea9859d9';
+var buildDate = '2018-2-5 11:04:53';
+var buildUUID = '531d55cb896a48818f1a07a91b5bd174';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -16163,11 +16163,17 @@ L.gmx.Deferred = Deferred;
 (function() {
 'use strict';
 
-if ('createImageBitmap' in window && 'Worker' in window) {
+	var worker;
+	if ('createImageBitmap' in window && 'Worker' in window) {
+		worker = new Worker(location.href.replace(/[^/]*$/, 'ImageBitmapLoader-worker.js'));
+	}
+	if (!worker) {
+		return;
+	}
+
 	var ImageBitmapLoader = function() {
 		this.jobs = {};
-		var workerSrc = document.currentScript.src.replace(/[^/]*$/, name + 'ImageBitmapLoader-worker.js');
-		this.worker = new Worker(workerSrc);
+		this.worker = worker;
 		this.worker.onmessage = this.chkMessage.bind(this);
 	}
 
@@ -16203,7 +16209,11 @@ if ('createImageBitmap' in window && 'Worker' in window) {
 
 	var imageBitmapLoader = new ImageBitmapLoader();
 	L.gmx.getBitmap = imageBitmapLoader.push.bind(imageBitmapLoader);
-}
+	worker.onerror = function(ev) {
+		console.warn('Error: Worker init: ImageBitmapLoader-worker.js', ev);
+		ev.target.terminate();
+		delete L.gmx.getBitmap;
+	};
 })();
 
 
