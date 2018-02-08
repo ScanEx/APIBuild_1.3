@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-7 09:19:15';
-var buildUUID = 'f3c0bb8d43c84949ac7703b5771d2fbc';
+var buildDate = '2018-2-8 17:16:41';
+var buildUUID = '793857bfdbbb432e9d1808a715eabf88';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -27470,10 +27470,10 @@ L.gmx.gmxImageTransform = function(img, hash) {
         hh = Math.round(boundsP.max.y - boundsP.min.y),
         dy = 256 - boundsP.max.y + 256 * gmxTilePoint.y,
         itbounds = geoItem.item.bounds,
-        wMerc = gmxAPIutils.worldWidthMerc,
+        wMerc = Number(gmxAPIutils.worldWidthMerc.toFixed(2)),
         tpx = gmxTilePoint.x;
 
-    if (tpx < 0 && itbounds.max.x > wMerc && itbounds.min.x < -wMerc) {	// For points intersects 180 deg
+    if (tpx < 0 && itbounds.max.x >= wMerc && itbounds.min.x <= -wMerc) {	// For points intersects 180 deg
 		tpx += Math.round(wMerc * mInPixel / 128);
 	}
 	var dx = boundsP.min.x - 256 * tpx;
