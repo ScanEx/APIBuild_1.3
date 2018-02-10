@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-8 17:16:35';
-var buildUUID = '793857bfdbbb432e9d1808a715eabf88';
+var buildDate = '2018-2-10 12:48:49';
+var buildUUID = '85de1269f7da43398e12a5b4f1446006';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20865,6 +20865,7 @@ var Observer = L.Class.extend({
         this._callback = options.callback;
         this.layerID = options.layerID;
         this.target = options.target;
+        this.z = options.z;
         this.itemHook = options.itemHook;	// set hook for item (set empty data for callback function)
         this._items = null;
         this.bbox = options.bbox;      		// set bbox by Mercator bounds
@@ -21773,7 +21774,7 @@ var DataManager = L.Class.extend({
     getItems: function(oId) {
         var resArr = [],
             observer = this._observers[oId];
-//console.log('getItems', oId, this.options.name);
+// console.log('getItems', oId, this.options.name);
 
         // if (!observer || !observer.isActive()) {
         if (!observer) {
@@ -22143,9 +22144,10 @@ var DataManager = L.Class.extend({
 
     _waitCheckObservers: function() {
         //TODO: refactor
-        if (this._checkObserversTimer) { clearTimeout(this._checkObserversTimer); }
-        this._checkObserversTimer = setTimeout(L.bind(this.checkObservers, this), 25);
-		//L.Util.requestAnimFrame(this.checkObservers, this);
+        // if (this._checkObserversTimer) { clearTimeout(this._checkObserversTimer); }
+        // this._checkObserversTimer = setTimeout(L.bind(this.checkObservers, this), 25);
+		if (this._checkObserversTimer) { cancelIdleCallback(this._checkObserversTimer); }
+		this._checkObserversTimer = requestIdleCallback(L.bind(this.checkObservers, this), {timeout: 25});
     },
 
     _triggerObservers: function(oKeys) {
@@ -22606,8 +22608,9 @@ L.gmx.VectorLayer = L.GridLayer.extend({
         cacheQuicklooks: true,
         clearCacheOnLoad: true,
         showScreenTiles: false,
-		updateWhenZooming: false,
+		// updateWhenZooming: false,
 		// bubblingMouseEvents: false,
+		keepBuffer: 0,
         clickable: true
     },
 
@@ -22656,7 +22659,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
             this._gmx.crossOrigin = options.crossOrigin;
         }
 	},
-
+/*
 	__repaintNotLoaded: function () {
 		//return;
 		if (!this._map) { return; }
@@ -22679,22 +22682,18 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			}
 		}
 		if (arr.length) {
-			 // console.log('_repaintNotLoaded ', this._gmx.layerID, arr.length);
+			// console.log('_repaintNotLoaded ', this._gmx.layerID, arr.length);
 			this.repaint(arr);
 		} else if (this.options.clearCacheOnLoad) {
-			 // console.log('_repaintNotLoaded - done', this._gmx.layerID, arr.length);
 			this._gmx.rastersCache = {};
 			this._gmx.quicklooksCache = {};
 		}
     },
 	__runRepaint: function (msek) {
-		if (this.__repaintNotLoadedTimer) { cancelIdleCallback(this.__repaintNotLoadedTimer); }
-		this.__repaintNotLoadedTimer = requestIdleCallback(L.bind(this.__repaintNotLoaded, this), {timeout: msek || 100});
-
-		// if (this.__repaintNotLoadedTimer) { clearTimeout(this.__repaintNotLoadedTimer); }
-		// this.__repaintNotLoadedTimer = setTimeout(L.bind(this.__repaintNotLoaded, this), msek || 100);
+		if (this.__repaintNotLoadedTimer) { clearTimeout(this.__repaintNotLoadedTimer); }
+		this.__repaintNotLoadedTimer = setTimeout(L.bind(this.__repaintNotLoaded, this), msek || 100);
     },
-
+*/
 	//block: extended from L.GridLayer
 	_setView: function (center, zoom, noPrune, noUpdate) {
 		if (!this._map) { return; }
@@ -22716,34 +22715,6 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			tile.active = true;
 		}
 		if (willPrune && !this._noPrune) { this._pruneTiles(); }
-	},
-
-	_removeTile: function (key) {
-		var tile = this._tiles[key];
-		if (!tile) { return; }
-
-        var gmx = this._gmx,
-			dm = gmx.dataManager;
-        if (dm) {
-			dm.removeObserver(key);		// TODO: про active
-		}
-
-		// Cancels any pending http requests associated with the tile	dataManager
-		// unless we're on Android's stock browser,
-		// see https://github.com/Leaflet/Leaflet/issues/137
-		// if (!Browser.androidStock) {
-			// tile.el.setAttribute('src', Util.emptyImageUrl);
-		// }
-		L.DomUtil.remove(tile.el);
-
-		delete this._tiles[key];
-
-		// @event tileunload: TileEvent
-		// Fired when a tile is removed (e.g. when a tile goes off the screen).
-		this.fire('tileunload', {
-			tile: tile.el,
-			coords: this._keyToTileCoords(key)
-		});
 	},
 
 	_tileReady: function (coords, err, tile) {
@@ -22794,12 +22765,11 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			} else {
 				// Wait a bit more than 0.2 secs (the duration of the tile fade-in)
 				// to trigger a pruning.
-				requestIdleCallback(L.bind(this._pruneTiles, this), {timeout: 250});
-				// setTimeout(L.bind(this._pruneTiles, this), 250);
+				setTimeout(L.bind(this._pruneTiles, this), 250);
 			}
 		}
 	},
-
+/*
 	// stops loading all tiles in the background layer
 	_abortLoading: function () {
 // console.log('_abortLoading ', this._loading, this._tileZoom, this._map._zoom, this._map.getZoom());
@@ -22816,7 +22786,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			}
 		}
 	},
-
+*/
     _onCreateLevel: function(level) {
 		this._updateShiftY(level.zoom);
 		//console.log('_onCreateLevel ', level);
@@ -22836,7 +22806,32 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 
     _onVersionChange: function () {
         this._updateProperties(this._gmx.rawProperties);
+		this._onmoveend({repaint: true});
     },
+
+	_onmoveend: function () {
+// console.log('_onmoveend', this._gmx.layerID, arguments);
+		var zoom = this._tileZoom,
+			key, tile;
+
+		for (key in this._tiles) {
+			tile = this._tiles[key];
+			if (tile.coords.z === zoom) {
+				if (tile.promise) { 	// тайл уже рисовался - можно только repaint
+					// if (attr && attr.repaint) {
+						// this.repaint(key);
+					// }
+				} else {			// данный тайл еще не рисовался
+					this.__drawTile(tile);
+				}
+			}
+		}
+        // if (this._gmx && this._gmx.dataManager) {
+			// var dm = this._gmx.dataManager;
+			//dm.removeScreenObservers(zoom);
+			//dm.fire('moveend');
+		// }
+	},
 
 	_getEvents: function () {
 		var events = L.GridLayer.prototype.getEvents.call(this);
@@ -22846,27 +22841,25 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			},
 			zoomend: function() {
 				this._gmx.zoomstart = false;
-				this.__runRepaint();
+				//this.__runRepaint();
 			}
 		});
         var gmx = this._gmx;
 		if (gmx.properties.type === 'Vector') {
 			events.moveend = function() {
-				if ('dataManager' in this._gmx) {
-					this._gmx.dataManager.fire('moveend');
-				}
-				//console.log('_moveEnd', this._gmx.layerID);
+				if (this._onmoveendTimer) { cancelIdleCallback(this._onmoveendTimer); }
+				this._onmoveendTimer = requestIdleCallback(L.bind(this._onmoveend, this), {timeout: 25});
 			};
 		}
 
 		return {
 			map: events,
 			owner: {
+				// load: function(ev) {					// Fired when the grid layer starts loading tiles.
+					// console.log('load ', ev);
+				// },
 				// bitmap: function(ev) {				// Fired when bitmap load results
 					// console.log('bitmap ', ev);
-				// },
-				// load: function(ev) {				// Fired when the grid layer starts loading tiles.
-					// console.log('load ', ev);
 				// },
 				// loading: function(ev) {				// Fired when the grid layer starts loading tiles.
 					// console.log('loading ', ev);
@@ -22881,7 +22874,9 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 					// console.log('tileunload ', ev);
 				// },
 				dateIntervalChanged: function() {
-					this.__runRepaint(150);
+						// this.redraw();
+					this._onmoveend({repaint: true});
+					//this.__runRepaint(150);
 				},
 				tileloadstart: function(ev) {				// тайл (ev.coords) загружается
 					var key = this._tileCoordsToKey(ev.coords),
@@ -22889,8 +22884,8 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 					// console.log('tileloadstart ', this._loading, this._tileZoom, ev);
 
 					tLink.loaded = 0;
-					tLink.screenTile = new ScreenVectorTile(this, tLink);
-					L.Util.requestAnimFrame(L.bind(this.__drawTile, this, ev));
+					//tLink.screenTile = new ScreenVectorTile(this, tLink);
+					//L.Util.requestAnimFrame(L.bind(this.__drawTile, this, ev));
 				},
 				stylechange: function() {
 					var gmx = this._gmx;
@@ -22955,6 +22950,9 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 
 				this._resetView();
 				this._update();
+				gmx.dataManager.fire('moveend');
+
+				this._onmoveend();
 			}
 			L.gmx.layersVersion.add(this);
 			this.fire('add');
@@ -22988,6 +22986,12 @@ L.gmx.VectorLayer = L.GridLayer.extend({
         }
         this.fire('remove');
     },
+	_removeTile: function (key) {
+        if (this._gmx && this._gmx.dataManager) {
+			this._gmx.dataManager.removeObserver(key);		// TODO: про active
+		}
+        L.GridLayer.prototype._removeTile.call(this, key);
+	},
 
     _updateZIndex: function () {
         if (this._container) {
@@ -23001,14 +23005,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 	// Private method to load tiles in the grid's active zoom level according to map bounds
 	_update: function (center) {
 		var map = this._map;
-		if (this._gmx.zoomstart || !map) { return; }
-		if (this._updateTimer) { cancelIdleCallback(this._updateTimer); }
-		this._updateTimer = requestIdleCallback(L.bind(this._updateWait, this, center), {timeout: 150});
-    },
-	// Private method to load tiles in the grid's active zoom level according to map bounds
-	_updateWait: function (center) {
-		var map = this._map;
-		if (this._gmx.zoomstart || !map) { return; }
+		if (!map) { return; }
 		var zoom = this._clampZoom(map.getZoom());
 
 		if (center === undefined) { center = map.getCenter(); }
@@ -23802,7 +23799,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			zoom = this._tileZoom,
             gmx = this._gmx;
 
-        if (tileElem && !tileElem.promise) {
+        if (!tileElem.promise) {
 			tileElem.loaded = 0;
 			tileElem.key = zKey;
 			tileElem.promise = new Promise(function(resolve, reject) {
@@ -23847,15 +23844,6 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 						}
                     }
 				}, zKey)
-					.on('activate', function() {
-						//if observer is deactivated before drawing,
-						//we can consider corresponding tile as already drawn
-						if (!this.isActive()) {
-							// console.log('isActive', zKey)
-							done();
-						}
-					});
-					//.activate();
 			}).catch(function(e) {
 				console.warn('catch:', e);
 			});
@@ -23988,10 +23976,10 @@ ScreenVectorTile.prototype = {
 									gmx.rastersCache[rUrl] = canvas_;
 								}
 								resolve({gtp: gtp, image: canvas_});
-								_this.layer.fire('bitmap', {id: item.id, loaded: true, url: rUrl});
+								_this.layer.fire('bitmap', {id: item.id, loaded: true, url: rUrl, result: res});
 							},
-							function() {
-								_this.layer.fire('bitmap', {id: item.id, loaded: false, url: rUrl});
+							function(res) {
+								_this.layer.fire('bitmap', {id: item.id, loaded: false, url: rUrl, result: res});
 								tryHigherLevelTile(rUrl);
 							}
 						)
@@ -24304,8 +24292,8 @@ ScreenVectorTile.prototype = {
 		if (gmx.sessionKey) { url += (url.indexOf('?') === -1 ? '?' : '&') + 'key=' + encodeURIComponent(gmx.sessionKey); }
 
 		return new Promise(function(resolve1) {
-			var skipRaster = function() {
-				_this.layer.fire('bitmap', {id: idr, loaded: false, url: url});
+			var skipRaster = function(res) {
+				_this.layer.fire('bitmap', {id: idr, loaded: false, url: url, result: res});
 				item.skipRasters = true;
 				resolve1();
 			};
@@ -24349,7 +24337,7 @@ ScreenVectorTile.prototype = {
 						canvas_.height = imageObj.height;
 						canvas_.getContext('2d').drawImage(imageObj, 0, 0, canvas_.width, canvas_.width);
 						done(canvas_);
-						_this.layer.fire('bitmap', {id: idr, loaded: true, url: url});
+						_this.layer.fire('bitmap', {id: idr, loaded: true, url: url, result: res});
 					}, skipRaster)
 				.catch(L.Util.falseFn);
 			} else {
