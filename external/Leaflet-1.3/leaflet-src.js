@@ -2729,13 +2729,14 @@ function testProp(props) {
 // and optionally scaled by `scale`. Does not have an effect if the
 // browser doesn't support 3D CSS transforms.
 function setTransform(el, offset, scale) {
-	var pos = offset || new Point(0, 0);
-
-	el.style[TRANSFORM] =
-		(ie3d ?
-			'translate(' + pos.x + 'px,' + pos.y + 'px)' :
-			'translate3d(' + pos.x + 'px,' + pos.y + 'px,0)') +
-		(scale ? ' scale(' + scale + ')' : '');
+	var pos = offset || new Point(0, 0),
+		translate = pos.x + 'px,' + pos.y + 'px',
+		transform = (ie3d ?
+			'translate(' + translate + ')' :
+			'translate3d(' + translate + ', 0)') + (scale ? ' scale(' + scale + ')' : '');
+	if (el._transform !== transform) {
+		el.style[TRANSFORM] = el._transform = transform;
+	}
 }
 
 // @function setPosition(el: HTMLElement, position: Point)
@@ -4507,23 +4508,24 @@ var Map = Evented.extend({
 		var proxy = this._proxy = create$1('div', 'leaflet-proxy leaflet-zoom-animated');
 		this._panes.mapPane.appendChild(proxy);
 
-		this.on('zoomanim', function (e) {
-			var prop = TRANSFORM,
-			    transform = this._proxy.style[prop];
+		this.on('zoomanim', function () {
+			// var prop = TRANSFORM,
+			    // transform = this._proxy.style[prop];
 
-			setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
+			setTransform(this._proxy, this.project(this._animateToCenter, this._animateToZoom), this.getZoomScale(this._animateToZoom, 1));
+			// setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
 
 			// workaround for case when transform is the same and so transitionend event is not fired
-			if (transform === this._proxy.style[prop] && this._animatingZoom) {
-				this._onZoomTransitionEnd();
-			}
+			// if (transform === this._proxy.style[prop] && this._animatingZoom) {
+				// this._onZoomTransitionEnd();
+			// }
 		}, this);
 
-		this.on('load moveend', function () {
-			var c = this.getCenter(),
-			    z = this.getZoom();
-			setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
-		}, this);
+		// this.on('load moveend', function () {
+			// var c = this.getCenter(),
+			    // z = this.getZoom();
+			// setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
+		// }, this);
 
 		this._on('unload', this._destroyAnimProxy, this);
 	},
@@ -4560,11 +4562,22 @@ var Map = Evented.extend({
 		// don't animate if the zoom origin isn't within one screen from the current center, unless forced
 		if (options.animate !== true && !this.getSize().contains(offset)) { return false; }
 
-		requestAnimFrame(function () {
+		this.fire('beforezoomanim', {
+			center: center,
+			zoom: zoom
+		});
+
+		if (this.__moveStartTimer) { cancelIdleCallback(this.__moveStartTimer); }
+		this.__moveStartTimer = requestIdleCallback(function () {
 			this
 			    ._moveStart(true, false)
 			    ._animateZoom(center, zoom, true);
-		}, this);
+		}.bind(this), {timeout: 25});
+		// requestAnimFrame(function () {
+			// this
+			    // ._moveStart(true, false)
+			    // ._animateZoom(center, zoom, true);
+		// }, this);
 
 		return true;
 	},
@@ -4591,7 +4604,7 @@ var Map = Evented.extend({
 		});
 
 		// Work around webkit not firing 'transitionend', see https://github.com/Leaflet/Leaflet/issues/3689, 2693
-		setTimeout(bind(this._onZoomTransitionEnd, this), 250);
+		//setTimeout(bind(this._onZoomTransitionEnd, this), 250);
 	},
 
 	_onZoomTransitionEnd: function () {
@@ -4606,9 +4619,12 @@ var Map = Evented.extend({
 		this._move(this._animateToCenter, this._animateToZoom);
 
 		// This anim frame should prevent an obscure iOS webkit tile loading race condition.
-		requestAnimFrame(function () {
+		requestIdleCallback(function () {
 			this._moveEnd(true);
-		}, this);
+		}.bind(this));
+		// requestAnimFrame(function () {
+			// this._moveEnd(true);
+		// }, this);
 	}
 });
 

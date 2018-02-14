@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-10 15:20:48';
-var buildUUID = 'f5e7ad31c80340b790a5ff0b92cb9a68';
+var buildDate = '2018-2-14 17:14:36';
+var buildUUID = 'a7196c41171a425ebc4bda7ec18dbd90';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -4361,13 +4361,14 @@ function testProp(props) {
 // and optionally scaled by `scale`. Does not have an effect if the
 // browser doesn't support 3D CSS transforms.
 function setTransform(el, offset, scale) {
-	var pos = offset || new Point(0, 0);
-
-	el.style[TRANSFORM] =
-		(ie3d ?
-			'translate(' + pos.x + 'px,' + pos.y + 'px)' :
-			'translate3d(' + pos.x + 'px,' + pos.y + 'px,0)') +
-		(scale ? ' scale(' + scale + ')' : '');
+	var pos = offset || new Point(0, 0),
+		translate = pos.x + 'px,' + pos.y + 'px',
+		transform = (ie3d ?
+			'translate(' + translate + ')' :
+			'translate3d(' + translate + ', 0)') + (scale ? ' scale(' + scale + ')' : '');
+	if (el._transform !== transform) {
+		el.style[TRANSFORM] = el._transform = transform;
+	}
 }
 
 // @function setPosition(el: HTMLElement, position: Point)
@@ -6139,23 +6140,24 @@ var Map = Evented.extend({
 		var proxy = this._proxy = create$1('div', 'leaflet-proxy leaflet-zoom-animated');
 		this._panes.mapPane.appendChild(proxy);
 
-		this.on('zoomanim', function (e) {
-			var prop = TRANSFORM,
-			    transform = this._proxy.style[prop];
+		this.on('zoomanim', function () {
+			// var prop = TRANSFORM,
+			    // transform = this._proxy.style[prop];
 
-			setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
+			setTransform(this._proxy, this.project(this._animateToCenter, this._animateToZoom), this.getZoomScale(this._animateToZoom, 1));
+			// setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
 
 			// workaround for case when transform is the same and so transitionend event is not fired
-			if (transform === this._proxy.style[prop] && this._animatingZoom) {
-				this._onZoomTransitionEnd();
-			}
+			// if (transform === this._proxy.style[prop] && this._animatingZoom) {
+				// this._onZoomTransitionEnd();
+			// }
 		}, this);
 
-		this.on('load moveend', function () {
-			var c = this.getCenter(),
-			    z = this.getZoom();
-			setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
-		}, this);
+		// this.on('load moveend', function () {
+			// var c = this.getCenter(),
+			    // z = this.getZoom();
+			// setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
+		// }, this);
 
 		this._on('unload', this._destroyAnimProxy, this);
 	},
@@ -6192,11 +6194,22 @@ var Map = Evented.extend({
 		// don't animate if the zoom origin isn't within one screen from the current center, unless forced
 		if (options.animate !== true && !this.getSize().contains(offset)) { return false; }
 
-		requestAnimFrame(function () {
+		this.fire('beforezoomanim', {
+			center: center,
+			zoom: zoom
+		});
+
+		if (this.__moveStartTimer) { cancelIdleCallback(this.__moveStartTimer); }
+		this.__moveStartTimer = requestIdleCallback(function () {
 			this
 			    ._moveStart(true, false)
 			    ._animateZoom(center, zoom, true);
-		}, this);
+		}.bind(this), {timeout: 25});
+		// requestAnimFrame(function () {
+			// this
+			    // ._moveStart(true, false)
+			    // ._animateZoom(center, zoom, true);
+		// }, this);
 
 		return true;
 	},
@@ -6223,7 +6236,7 @@ var Map = Evented.extend({
 		});
 
 		// Work around webkit not firing 'transitionend', see https://github.com/Leaflet/Leaflet/issues/3689, 2693
-		setTimeout(bind(this._onZoomTransitionEnd, this), 250);
+		//setTimeout(bind(this._onZoomTransitionEnd, this), 250);
 	},
 
 	_onZoomTransitionEnd: function () {
@@ -6238,9 +6251,12 @@ var Map = Evented.extend({
 		this._move(this._animateToCenter, this._animateToZoom);
 
 		// This anim frame should prevent an obscure iOS webkit tile loading race condition.
-		requestAnimFrame(function () {
+		requestIdleCallback(function () {
 			this._moveEnd(true);
-		}, this);
+		}.bind(this));
+		// requestAnimFrame(function () {
+			// this._moveEnd(true);
+		// }, this);
 	}
 });
 
@@ -19455,6 +19471,7 @@ L.extend(L.gmxUtil, {
     parseTemplate: gmxAPIutils.parseTemplate
 });
 
+L.gmxUtil.isOldVersion = L.version.substr(0, 3) === '0.7';
 L.gmxUtil.isIEOrEdge = L.gmxUtil.gtIE11 || L.gmxUtil.isIE11 || L.gmxUtil.isIE10 || L.gmxUtil.isIE9;
 if (!('requestIdleCallback' in window)) {
 	window.requestIdleCallback = function(func, opt) {
@@ -22608,7 +22625,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
         cacheQuicklooks: true,
         clearCacheOnLoad: true,
         showScreenTiles: false,
-		// updateWhenZooming: false,
+		updateWhenZooming: false,
 		// bubblingMouseEvents: false,
 		keepBuffer: 0,
         clickable: true
@@ -22699,10 +22716,10 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 */
 	//block: extended from L.GridLayer
 	_setView: function (center, zoom, noPrune, noUpdate) {
-		if (!this._map) { return; }
+		if (!this._map || this._map._animatingZoom) { return; }
 		L.GridLayer.prototype._setView.call(this, center, zoom, noPrune, noUpdate);
 	},
-
+/*
 	_updateOpacity: function () {
 		if (!this._map) { return; }
 
@@ -22772,7 +22789,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			}
 		}
 	},
-/*
+
 	// stops loading all tiles in the background layer
 	_abortLoading: function () {
 // console.log('_abortLoading ', this._loading, this._tileZoom, this._map._zoom, this._map.getZoom());
@@ -22829,22 +22846,25 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 				}
 			}
 		}
-        // if (this._gmx && this._gmx.dataManager) {
-			// var dm = this._gmx.dataManager;
-			//dm.removeScreenObservers(zoom);
-			//dm.fire('moveend');
-		// }
+        if (this._gmx && this._gmx.dataManager) {
+			var dm = this._gmx.dataManager;
+			dm.removeScreenObservers(zoom);
+			dm.fire('moveend');
+		}
 	},
 
 	_getEvents: function () {
 		var events = L.GridLayer.prototype.getEvents.call(this);
 		L.extend(events, {
-			zoomstart: function() {
+			// zoomstart: function() {
+				// this._gmx.zoomstart = true;
+			// },
+			beforezoomanim: function(ev) {
+				this._setZoomTransforms(ev.center, ev.zoom);
 				this._gmx.zoomstart = true;
 			},
 			zoomend: function() {
 				this._gmx.zoomstart = false;
-				//this.__runRepaint();
 			}
 		});
         var gmx = this._gmx;
@@ -22852,6 +22872,22 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			dateIntervalChanged: function() {
 				this._onmoveend({repaint: true});
 			},
+			load: function() {				// Fired when the grid layer starts loading tiles.
+				// console.log('load ', ev, Date.now() - window.startTest, ev);
+				if (this._tileZoom) {
+					var z = this._tileZoom;
+					if (this._gmx && this._gmx.dataManager) {
+						var dm = this._gmx.dataManager;
+						dm.removeScreenObservers(z);
+					}
+					for (var key in this._levels) {
+						if (key !== z) {
+							this._removeTilesAtZoom(key);
+						}
+					}
+				}
+			},
+
 			tileloadstart: function(ev) {				// тайл (ev.coords) загружается
 				var key = ev.key || this._tileCoordsToKey(ev.coords),
 					tLink = this._tiles[key];
@@ -22893,26 +22929,26 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 				}
 			};
 			if (gmx.debug) {
-				owner.load = function(ev) {					// Fired when the grid layer starts loading tiles.
-					var zoom = this._tileZoom,
-						err = [],
-						key, tile;
-					for (key in this._tiles) {
-						tile = this._tiles[key];
-						if (!tile.loaded) {
-							err.push({err: 'notLoaded', key: key, tile: tile});
-						}
-						if (!tile.promise) {
-							err.push({err: 'notPromise', key: key, tile: tile});
-						}
-					}
-					var cntTiles = Object.keys(this._tiles);
-					var cntObservers = Object.keys(gmx.dataManager._observers);
-					if (cntTiles.length !== cntObservers.length) {
-						err.push({err: 'cntObservers', observers: cntObservers, tiles: cntTiles});
-					}
-					console.log('load ', gmx.layerID, zoom, err, ev);
-				};
+				// owner.load = function(ev) {
+					// var zoom = this._tileZoom,
+						// err = [],
+						// key, tile;
+					// for (key in this._tiles) {
+						// tile = this._tiles[key];
+						// if (!tile.loaded) {
+							// err.push({err: 'notLoaded', key: key, tile: tile});
+						// }
+						// if (!tile.promise) {
+							// err.push({err: 'notPromise', key: key, tile: tile});
+						// }
+					// }
+					// var cntTiles = Object.keys(this._tiles);
+					// var cntObservers = Object.keys(gmx.dataManager._observers);
+					// if (cntTiles.length !== cntObservers.length) {
+						// err.push({err: 'cntObservers', observers: cntObservers, tiles: cntTiles});
+					// }
+					// console.log('load ', gmx.layerID, zoom, err, ev);
+				// };
 				// owner.bitmap = function(ev) {				// Fired when bitmap load results
 					// console.log('bitmap ', ev);
 				// };
@@ -23011,6 +23047,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
         this.fire('remove');
     },
 	_removeTile: function (key) {
+		if (!this._map || this._map._animatingZoom) { return; }
         if (this._gmx && this._gmx.dataManager) {
 			this._gmx.dataManager.removeObserver(key);		// TODO: про active
 		}
@@ -23023,10 +23060,16 @@ L.gmx.VectorLayer = L.GridLayer.extend({
                 zIndex = options.zIndex || 0,
                 zIndexOffset = options.zIndexOffset || 0;
 
-            this._container.style.zIndex = zIndexOffset + zIndex;
+           this._container.style.zIndex = zIndexOffset + zIndex;
         }
+	},
+
+    _update: function (center) {
+		if (!this._map || this._map._animatingZoom) { return; }
+        L.GridLayer.prototype._update.call(this, center);
     },
 	// Private method to load tiles in the grid's active zoom level according to map bounds
+	/*
 	_update: function (center) {
 		var map = this._map;
 		if (!map) { return; }
@@ -23092,10 +23135,10 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			}
 		}
 	},
-
+*/
 /*eslint-disable no-unused-vars */
 	createTile: function(coords , done) {
-		this._test = [coords, done];
+		//this._test = [coords, done];
 		var tile = L.DomUtil.create('canvas', 'leaflet-tile');
 		var size = this.getTileSize();
 		tile.width = tile.height = 0;
@@ -23109,12 +23152,12 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 		if (L.Browser.android && !L.Browser.android23) {
 			tile.style.WebkitBackfaceVisibility = 'hidden';
 		}
+		// tile.setAttribute('role', 'presentation');
 
 		// tile.style.opacity = this.options.opacity;
 		return tile;
     },
 /*eslint-enable */
-
 	_addTile: function (coords) {
 		var tile = this.createTile(this._wrapCoords(coords), L.bind(this._tileReady, this, coords)),
 			key = this._tileCoordsToKey(coords);
@@ -24557,7 +24600,7 @@ ScreenVectorTile.prototype = {
 							tpy: _this.tpy,
 							ctx: ctx
 						};
-					L.DomUtil.addClass(tile, 'zKey:' + _this.zKey);
+					// L.DomUtil.addClass(tile, 'zKey:' + _this.zKey);
 
 					ctx.clearRect(0, 0, 256, 256);
 					if (gmx.showScreenTiles) {
@@ -26620,8 +26663,12 @@ var layersVersion = {
     chkVersion: chkVersion,
 
     now: function() {
-		if (timeoutID) { clearTimeout(timeoutID); }
-		timeoutID = setTimeout(chkVersion, 0);
+		if (timeoutID) { cancelIdleCallback(timeoutID); }
+		timeoutID = requestIdleCallback(function() {
+			chkVersion();
+		}, {timeout: 25});
+		// if (timeoutID) { clearTimeout(timeoutID); }
+		// timeoutID = setTimeout(chkVersion, 0);
     },
 
     stop: function() {
@@ -27044,9 +27091,9 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
         // if (map.options.zoomAnimation && L.Browser.any3d) {
             // map.on('zoomanim', this._animateZoom, this);
         // } else {
-			map.on('zoomstart', function() {
-				if (this._canvas.parentNode) { this._canvas.parentNode.removeChild(this._canvas); }
-			}, this);
+			// map.on('zoomstart', function() {
+				// if (this._canvas.parentNode) { this._canvas.parentNode.removeChild(this._canvas); }
+			// }, this);
 		// }
 
         this._reset();
@@ -30140,7 +30187,7 @@ L.Control.GmxLocation = L.Control.extend({
         this._checkPositionChanged = function () {
             var z = map.getZoom();
 
-            if (z) {
+            if (z && !map._animatingZoom) {
                 var attr = {txt: _mzoom[z], width: 0};
                 if (this.options.scaleFormat === 'bar') {
                     attr = utils.getScaleBarDistance(z, map.getCenter());
@@ -30162,8 +30209,10 @@ L.Control.GmxLocation = L.Control.extend({
         };
 
         this.setCoordinatesFormat = function (nm) {
-            if (nm === 0) { util.coordFormat = 0; }
-            util.setCoordinatesFormat(nm);
+            if (!map._animatingZoom) {
+				if (nm === 0) { util.coordFormat = 0; }
+				util.setCoordinatesFormat(nm);
+			}
         };
 
         var toggleScaleFormat = function () {
@@ -30642,11 +30691,13 @@ L.Control.GmxCopyright = L.Control.extend({
 				var cursorPositionContainer = L.DomUtil.create('span', 'leaflet-gmx-cursorposition', this._container);
 				this.lastLatLng = L.latLng(0, 0);
 				this.cursorPosition = function (ev) {
-					var latlng = ev.latlng,
-						mouseDown = L.Browser.webkit ? ev.originalEvent.which : ev.originalEvent.buttons;
-					if (!mouseDown && !latlng.equals(this.lastLatLng)) {
-						this.lastLatLng = latlng;
-						cursorPositionContainer.innerHTML = utils.getCoordinatesString(latlng, gmxLocation ? gmxLocation.getCoordinatesFormat() : 0);
+					if (!map._animatingZoom) {
+						var latlng = ev.latlng,
+							mouseDown = L.Browser.webkit ? ev.originalEvent.which : ev.originalEvent.buttons;
+						if (!mouseDown && !latlng.equals(this.lastLatLng)) {
+							this.lastLatLng = latlng;
+							cursorPositionContainer.innerHTML = utils.getCoordinatesString(latlng, gmxLocation ? gmxLocation.getCoordinatesFormat() : 0);
+						}
 					}
 				};
 				map.on('mousemove', this.cursorPosition, this);
@@ -30796,12 +30847,19 @@ L.Control.GmxCopyright = L.Control.extend({
     },
 
     _redraw: function () {
-        var my = this;
-        if (this._redrawTimer) { clearTimeout(this._redrawTimer); }
-        this._redrawTimer = setTimeout(function() {
-            my._redrawTimer = null;
-            if (my._map) { my._redrawItems(); }
-        }, 100);
+        if (!this._map._animatingZoom) {
+			if (this._redrawTimer) { cancelIdleCallback(this._redrawTimer); }
+			this._redrawTimer = requestIdleCallback(function () {
+				if (this._map) { this._redrawItems(); }
+			}.bind(this), {timeout: 250});
+		}
+        // var my = this;
+			// if (this._redrawTimer) { clearTimeout(this._redrawTimer); }
+			// this._redrawTimer = setTimeout(function() {
+				// my._redrawTimer = null;
+				// if (my._map) { my._redrawItems(); }
+			// }, 100);
+		// }
     }
 });
 
