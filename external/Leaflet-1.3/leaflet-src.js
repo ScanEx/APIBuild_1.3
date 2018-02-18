@@ -1,5 +1,5 @@
 /* @preserve
- * Leaflet 1.3.1+Detached: ba6f97fff8647e724e4dfe66d2ed7da11f908989.ba6f97f, a JS library for interactive maps. http://leafletjs.com
+ * Leaflet 1.3.1+Detached: e3b049cefdd2528aee3ecb003ede35dbb19d5f4b.e3b049c, a JS library for interactive maps. http://leafletjs.com
  * (c) 2010-2017 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
@@ -9,7 +9,7 @@
 	(factory((global.L = {})));
 }(this, (function (exports) { 'use strict';
 
-var version = "1.3.1+HEAD.ba6f97f";
+var version = "1.3.1+HEAD.e3b049c";
 
 /*
  * @namespace Util
@@ -2728,7 +2728,7 @@ function testProp(props) {
 // Resets the 3D CSS transform of `el` so it is translated by `offset` pixels
 // and optionally scaled by `scale`. Does not have an effect if the
 // browser doesn't support 3D CSS transforms.
-function setTransform(el, offset, scale) {
+function setTransform(el, offset, scale) {		// Add by Geomixer
 	var pos = offset || new Point(0, 0),
 		translate = pos.x + 'px,' + pos.y + 'px',
 		transform = (ie3d ?
@@ -4508,24 +4508,23 @@ var Map = Evented.extend({
 		var proxy = this._proxy = create$1('div', 'leaflet-proxy leaflet-zoom-animated');
 		this._panes.mapPane.appendChild(proxy);
 
-		this.on('zoomanim', function () {
-			// var prop = TRANSFORM,
-			    // transform = this._proxy.style[prop];
+		this.on('zoomanim', function (e) {
+			var prop = TRANSFORM,
+			    transform = this._proxy.style[prop];
 
-			setTransform(this._proxy, this.project(this._animateToCenter, this._animateToZoom), this.getZoomScale(this._animateToZoom, 1));
-			// setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
+			setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
 
 			// workaround for case when transform is the same and so transitionend event is not fired
-			// if (transform === this._proxy.style[prop] && this._animatingZoom) {
-				// this._onZoomTransitionEnd();
-			// }
+			if (transform === this._proxy.style[prop] && this._animatingZoom) {
+				this._onZoomTransitionEnd();
+			}
 		}, this);
 
-		// this.on('load moveend', function () {
-			// var c = this.getCenter(),
-			    // z = this.getZoom();
-			// setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
-		// }, this);
+		this.on('load moveend', function () {
+			var c = this.getCenter(),
+			    z = this.getZoom();
+			setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
+		}, this);
 
 		this._on('unload', this._destroyAnimProxy, this);
 	},
@@ -4562,22 +4561,11 @@ var Map = Evented.extend({
 		// don't animate if the zoom origin isn't within one screen from the current center, unless forced
 		if (options.animate !== true && !this.getSize().contains(offset)) { return false; }
 
-		this.fire('beforezoomanim', {
-			center: center,
-			zoom: zoom
-		});
-
-		if (this.__moveStartTimer) { cancelIdleCallback(this.__moveStartTimer); }
-		this.__moveStartTimer = requestIdleCallback(function () {
+		requestAnimFrame(function () {
 			this
 			    ._moveStart(true, false)
 			    ._animateZoom(center, zoom, true);
-		}.bind(this), {timeout: 25});
-		// requestAnimFrame(function () {
-			// this
-			    // ._moveStart(true, false)
-			    // ._animateZoom(center, zoom, true);
-		// }, this);
+		}, this);
 
 		return true;
 	},
@@ -4604,7 +4592,7 @@ var Map = Evented.extend({
 		});
 
 		// Work around webkit not firing 'transitionend', see https://github.com/Leaflet/Leaflet/issues/3689, 2693
-		//setTimeout(bind(this._onZoomTransitionEnd, this), 250);
+		setTimeout(bind(this._onZoomTransitionEnd, this), 250);
 	},
 
 	_onZoomTransitionEnd: function () {
@@ -4619,12 +4607,9 @@ var Map = Evented.extend({
 		this._move(this._animateToCenter, this._animateToZoom);
 
 		// This anim frame should prevent an obscure iOS webkit tile loading race condition.
-		requestIdleCallback(function () {
+		requestAnimFrame(function () {
 			this._moveEnd(true);
-		}.bind(this));
-		// requestAnimFrame(function () {
-			// this._moveEnd(true);
-		// }, this);
+		}, this);
 	}
 });
 
@@ -8929,8 +8914,10 @@ var ImageOverlay = Layer.extend({
 		// If `true`, the image overlay will emit [mouse events](#interactive-layer) when clicked or hovered.
 		interactive: false,
 
-		// @option crossOrigin: Boolean = false
-		// If true, the image will have its crossOrigin attribute set to ''. This is needed if you want to access image pixel data.
+		// @option crossOrigin: Boolean|String = false
+		// Whether the crossOrigin attribute will be added to the image.
+		// If a String is provided, the image will have its crossOrigin attribute set to the String provided. This is needed if you want to access image pixel data.
+		// Refer to [CORS Settings](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_settings_attributes) for valid String values.
 		crossOrigin: false,
 
 		// @option errorOverlayUrl: String = ''
@@ -9086,8 +9073,8 @@ var ImageOverlay = Layer.extend({
 		img.onload = bind(this.fire, this, 'load');
 		img.onerror = bind(this._overlayOnError, this, 'error');
 
-		if (this.options.crossOrigin) {
-			img.crossOrigin = '';
+		if (this.options.crossOrigin || this.options.crossOrigin === '') {
+			img.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
 		}
 
 		if (this.options.zIndex) {
@@ -11269,7 +11256,7 @@ var GridLayer = Layer.extend({
 	},
 
 	_tileReady: function (coords, err, tile) {
-		if (!this._map) { return; }
+		if (!this._map) { return; }				// Add by Geomixer
 
 		if (err) {
 			// @event tileerror: TileErrorEvent
@@ -11424,8 +11411,10 @@ var TileLayer = GridLayer.extend({
 		// If `true` and user is on a retina display, it will request four tiles of half the specified size and a bigger zoom level in place of one to utilize the high resolution.
 		detectRetina: false,
 
-		// @option crossOrigin: Boolean = false
-		// If true, all tiles will have their crossOrigin attribute set to ''. This is needed if you want to access tile pixel data.
+		// @option crossOrigin: Boolean|String = false
+		// Whether the crossOrigin attribute will be added to the tiles.
+		// If a String is provided, all tiles will have their crossOrigin attribute set to the String provided. This is needed if you want to access tile pixel data.
+		// Refer to [CORS Settings](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_settings_attributes) for valid String values.
 		crossOrigin: false
 	},
 
@@ -11482,8 +11471,8 @@ var TileLayer = GridLayer.extend({
 		on(tile, 'load', bind(this._tileOnLoad, this, done, tile));
 		on(tile, 'error', bind(this._tileOnError, this, done, tile));
 
-		if (this.options.crossOrigin) {
-			tile.crossOrigin = '';
+		if (this.options.crossOrigin || this.options.crossOrigin === '') {
+			tile.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
 		}
 
 		/*
@@ -11584,6 +11573,11 @@ var TileLayer = GridLayer.extend({
 				}
 			}
 		}
+	},
+
+	_tileReady: function (coords, err, tile) {		// Add by Geomixer
+		if (!this._map || tile.getAttribute('src') === emptyImageUrl) { return; }
+		GridLayer.prototype._tileReady.call(this, coords, err, tile);
 	}
 });
 
@@ -11926,6 +11920,7 @@ var Canvas = Renderer.extend({
 	},
 
 	_destroyContainer: function () {
+		cancelAnimFrame(this._redrawRequest);
 		delete this._ctx;
 		remove(this._container);
 		off(this._container);
@@ -12686,10 +12681,7 @@ Map.include({
 		var renderer = layer.options.renderer || this._getPaneRenderer(layer.options.pane) || this.options.renderer || this._renderer;
 
 		if (!renderer) {
-			// @namespace Map; @option preferCanvas: Boolean = false
-			// Whether `Path`s should be rendered on a `Canvas` renderer.
-			// By default, all `Path`s are rendered in a `SVG` renderer.
-			renderer = this._renderer = (this.options.preferCanvas && canvas$1()) || svg$1();
+			renderer = this._renderer = this._createRenderer();
 		}
 
 		if (!this.hasLayer(renderer)) {
@@ -12705,10 +12697,17 @@ Map.include({
 
 		var renderer = this._paneRenderers[name];
 		if (renderer === undefined) {
-			renderer = (SVG && svg$1({pane: name})) || (Canvas && canvas$1({pane: name}));
+			renderer = this._createRenderer({pane: name});
 			this._paneRenderers[name] = renderer;
 		}
 		return renderer;
+	},
+
+	_createRenderer: function (options) {
+		// @namespace Map; @option preferCanvas: Boolean = false
+		// Whether `Path`s should be rendered on a `Canvas` renderer.
+		// By default, all `Path`s are rendered in a `SVG` renderer.
+		return (this.options.preferCanvas && canvas$1(options)) || svg$1(options);
 	}
 });
 
@@ -13724,21 +13723,9 @@ Map.ScrollWheelZoom = ScrollWheelZoom;
 Map.Tap = Tap;
 Map.TouchZoom = TouchZoom;
 
-// misc
-
-var oldL = window.L;
-function noConflict() {
-	window.L = oldL;
-	return this;
-}
-
-// Always export us to window global (see #2364)
-window.L = exports;
-
 Object.freeze = freeze;
 
 exports.version = version;
-exports.noConflict = noConflict;
 exports.Control = Control;
 exports.control = control;
 exports.Browser = Browser;
@@ -13815,5 +13802,13 @@ exports.rectangle = rectangle;
 exports.Map = Map;
 exports.map = createMap;
 
+var oldL = window.L;
+exports.noConflict = function() {
+	window.L = oldL;
+	return this;
+}
+
+// Always export us to window global (see #2364)
+window.L = exports;
+
 })));
-//# sourceMappingURL=leaflet-src.js.map

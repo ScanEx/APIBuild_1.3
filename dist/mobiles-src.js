@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-16 15:46:44';
-var buildUUID = '2848e2896ead49d081ec37c8cbaf093a';
+var buildDate = '2018-2-18 10:26:34';
+var buildUUID = '4c830b51c45a47679664985293ed6dbe';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -1631,7 +1631,7 @@ return Promise$3;
 
 
 /* @preserve
- * Leaflet 1.3.1+Detached: ba6f97fff8647e724e4dfe66d2ed7da11f908989.ba6f97f, a JS library for interactive maps. http://leafletjs.com
+ * Leaflet 1.3.1+Detached: e3b049cefdd2528aee3ecb003ede35dbb19d5f4b.e3b049c, a JS library for interactive maps. http://leafletjs.com
  * (c) 2010-2017 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
@@ -1641,7 +1641,7 @@ return Promise$3;
 	(factory((global.L = {})));
 }(this, (function (exports) { 'use strict';
 
-var version = "1.3.1+HEAD.ba6f97f";
+var version = "1.3.1+HEAD.e3b049c";
 
 /*
  * @namespace Util
@@ -4360,7 +4360,7 @@ function testProp(props) {
 // Resets the 3D CSS transform of `el` so it is translated by `offset` pixels
 // and optionally scaled by `scale`. Does not have an effect if the
 // browser doesn't support 3D CSS transforms.
-function setTransform(el, offset, scale) {
+function setTransform(el, offset, scale) {		// Add by Geomixer
 	var pos = offset || new Point(0, 0),
 		translate = pos.x + 'px,' + pos.y + 'px',
 		transform = (ie3d ?
@@ -6140,24 +6140,23 @@ var Map = Evented.extend({
 		var proxy = this._proxy = create$1('div', 'leaflet-proxy leaflet-zoom-animated');
 		this._panes.mapPane.appendChild(proxy);
 
-		this.on('zoomanim', function () {
-			// var prop = TRANSFORM,
-			    // transform = this._proxy.style[prop];
+		this.on('zoomanim', function (e) {
+			var prop = TRANSFORM,
+			    transform = this._proxy.style[prop];
 
-			setTransform(this._proxy, this.project(this._animateToCenter, this._animateToZoom), this.getZoomScale(this._animateToZoom, 1));
-			// setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
+			setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
 
 			// workaround for case when transform is the same and so transitionend event is not fired
-			// if (transform === this._proxy.style[prop] && this._animatingZoom) {
-				// this._onZoomTransitionEnd();
-			// }
+			if (transform === this._proxy.style[prop] && this._animatingZoom) {
+				this._onZoomTransitionEnd();
+			}
 		}, this);
 
-		// this.on('load moveend', function () {
-			// var c = this.getCenter(),
-			    // z = this.getZoom();
-			// setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
-		// }, this);
+		this.on('load moveend', function () {
+			var c = this.getCenter(),
+			    z = this.getZoom();
+			setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
+		}, this);
 
 		this._on('unload', this._destroyAnimProxy, this);
 	},
@@ -6194,22 +6193,11 @@ var Map = Evented.extend({
 		// don't animate if the zoom origin isn't within one screen from the current center, unless forced
 		if (options.animate !== true && !this.getSize().contains(offset)) { return false; }
 
-		this.fire('beforezoomanim', {
-			center: center,
-			zoom: zoom
-		});
-
-		if (this.__moveStartTimer) { cancelIdleCallback(this.__moveStartTimer); }
-		this.__moveStartTimer = requestIdleCallback(function () {
+		requestAnimFrame(function () {
 			this
 			    ._moveStart(true, false)
 			    ._animateZoom(center, zoom, true);
-		}.bind(this), {timeout: 25});
-		// requestAnimFrame(function () {
-			// this
-			    // ._moveStart(true, false)
-			    // ._animateZoom(center, zoom, true);
-		// }, this);
+		}, this);
 
 		return true;
 	},
@@ -6236,7 +6224,7 @@ var Map = Evented.extend({
 		});
 
 		// Work around webkit not firing 'transitionend', see https://github.com/Leaflet/Leaflet/issues/3689, 2693
-		//setTimeout(bind(this._onZoomTransitionEnd, this), 250);
+		setTimeout(bind(this._onZoomTransitionEnd, this), 250);
 	},
 
 	_onZoomTransitionEnd: function () {
@@ -6251,12 +6239,9 @@ var Map = Evented.extend({
 		this._move(this._animateToCenter, this._animateToZoom);
 
 		// This anim frame should prevent an obscure iOS webkit tile loading race condition.
-		requestIdleCallback(function () {
+		requestAnimFrame(function () {
 			this._moveEnd(true);
-		}.bind(this));
-		// requestAnimFrame(function () {
-			// this._moveEnd(true);
-		// }, this);
+		}, this);
 	}
 });
 
@@ -10561,8 +10546,10 @@ var ImageOverlay = Layer.extend({
 		// If `true`, the image overlay will emit [mouse events](#interactive-layer) when clicked or hovered.
 		interactive: false,
 
-		// @option crossOrigin: Boolean = false
-		// If true, the image will have its crossOrigin attribute set to ''. This is needed if you want to access image pixel data.
+		// @option crossOrigin: Boolean|String = false
+		// Whether the crossOrigin attribute will be added to the image.
+		// If a String is provided, the image will have its crossOrigin attribute set to the String provided. This is needed if you want to access image pixel data.
+		// Refer to [CORS Settings](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_settings_attributes) for valid String values.
 		crossOrigin: false,
 
 		// @option errorOverlayUrl: String = ''
@@ -10718,8 +10705,8 @@ var ImageOverlay = Layer.extend({
 		img.onload = bind(this.fire, this, 'load');
 		img.onerror = bind(this._overlayOnError, this, 'error');
 
-		if (this.options.crossOrigin) {
-			img.crossOrigin = '';
+		if (this.options.crossOrigin || this.options.crossOrigin === '') {
+			img.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
 		}
 
 		if (this.options.zIndex) {
@@ -12901,7 +12888,7 @@ var GridLayer = Layer.extend({
 	},
 
 	_tileReady: function (coords, err, tile) {
-		if (!this._map) { return; }
+		if (!this._map) { return; }				// Add by Geomixer
 
 		if (err) {
 			// @event tileerror: TileErrorEvent
@@ -13056,8 +13043,10 @@ var TileLayer = GridLayer.extend({
 		// If `true` and user is on a retina display, it will request four tiles of half the specified size and a bigger zoom level in place of one to utilize the high resolution.
 		detectRetina: false,
 
-		// @option crossOrigin: Boolean = false
-		// If true, all tiles will have their crossOrigin attribute set to ''. This is needed if you want to access tile pixel data.
+		// @option crossOrigin: Boolean|String = false
+		// Whether the crossOrigin attribute will be added to the tiles.
+		// If a String is provided, all tiles will have their crossOrigin attribute set to the String provided. This is needed if you want to access tile pixel data.
+		// Refer to [CORS Settings](https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_settings_attributes) for valid String values.
 		crossOrigin: false
 	},
 
@@ -13114,8 +13103,8 @@ var TileLayer = GridLayer.extend({
 		on(tile, 'load', bind(this._tileOnLoad, this, done, tile));
 		on(tile, 'error', bind(this._tileOnError, this, done, tile));
 
-		if (this.options.crossOrigin) {
-			tile.crossOrigin = '';
+		if (this.options.crossOrigin || this.options.crossOrigin === '') {
+			tile.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
 		}
 
 		/*
@@ -13216,6 +13205,11 @@ var TileLayer = GridLayer.extend({
 				}
 			}
 		}
+	},
+
+	_tileReady: function (coords, err, tile) {		// Add by Geomixer
+		if (!this._map || tile.getAttribute('src') === emptyImageUrl) { return; }
+		GridLayer.prototype._tileReady.call(this, coords, err, tile);
 	}
 });
 
@@ -13558,6 +13552,7 @@ var Canvas = Renderer.extend({
 	},
 
 	_destroyContainer: function () {
+		cancelAnimFrame(this._redrawRequest);
 		delete this._ctx;
 		remove(this._container);
 		off(this._container);
@@ -14318,10 +14313,7 @@ Map.include({
 		var renderer = layer.options.renderer || this._getPaneRenderer(layer.options.pane) || this.options.renderer || this._renderer;
 
 		if (!renderer) {
-			// @namespace Map; @option preferCanvas: Boolean = false
-			// Whether `Path`s should be rendered on a `Canvas` renderer.
-			// By default, all `Path`s are rendered in a `SVG` renderer.
-			renderer = this._renderer = (this.options.preferCanvas && canvas$1()) || svg$1();
+			renderer = this._renderer = this._createRenderer();
 		}
 
 		if (!this.hasLayer(renderer)) {
@@ -14337,10 +14329,17 @@ Map.include({
 
 		var renderer = this._paneRenderers[name];
 		if (renderer === undefined) {
-			renderer = (SVG && svg$1({pane: name})) || (Canvas && canvas$1({pane: name}));
+			renderer = this._createRenderer({pane: name});
 			this._paneRenderers[name] = renderer;
 		}
 		return renderer;
+	},
+
+	_createRenderer: function (options) {
+		// @namespace Map; @option preferCanvas: Boolean = false
+		// Whether `Path`s should be rendered on a `Canvas` renderer.
+		// By default, all `Path`s are rendered in a `SVG` renderer.
+		return (this.options.preferCanvas && canvas$1(options)) || svg$1(options);
 	}
 });
 
@@ -15356,21 +15355,9 @@ Map.ScrollWheelZoom = ScrollWheelZoom;
 Map.Tap = Tap;
 Map.TouchZoom = TouchZoom;
 
-// misc
-
-var oldL = window.L;
-function noConflict() {
-	window.L = oldL;
-	return this;
-}
-
-// Always export us to window global (see #2364)
-window.L = exports;
-
 Object.freeze = freeze;
 
 exports.version = version;
-exports.noConflict = noConflict;
 exports.Control = Control;
 exports.control = control;
 exports.Browser = Browser;
@@ -15447,8 +15434,16 @@ exports.rectangle = rectangle;
 exports.Map = Map;
 exports.map = createMap;
 
+var oldL = window.L;
+exports.noConflict = function() {
+	window.L = oldL;
+	return this;
+}
+
+// Always export us to window global (see #2364)
+window.L = exports;
+
 })));
-//# sourceMappingURL=leaflet-src.js.map
 
 
 /*
@@ -16180,7 +16175,7 @@ L.gmx.Deferred = Deferred;
 'use strict';
 
 	var worker;
-	if ('createImageBitmap' in window && 'Worker' in window) {
+	if ('createImageBitmap' in window && 'Worker' in window && location.protocol !== 'file:') {
 		worker = new Worker(location.href.replace(/[^/]*$/, 'ImageBitmapLoader-worker.js'));
 	}
 	if (!worker) {
@@ -18207,6 +18202,11 @@ var gmxAPIutils = {
         }
         return length;
     },
+    getText: function(str) {
+		str = str || '';
+        if (L.gmxLocale) { return L.gmxLocale.getText(str); }
+		return str.split('.').pop();
+	},
 
     /** Get prettify length
      * @memberof L.gmxUtil
@@ -18215,13 +18215,13 @@ var gmxAPIutils = {
      * @return {String} prettify length
     */
     prettifyDistance: function(length, type) {
-        var km = ' ' + L.gmxLocale.getText('units.km');
+        var km = ' ' + gmxAPIutils.getText('units.km');
         if (type === 'nm') {
-            return (Math.round(0.539956803 * length) / 1000) + ' ' + L.gmxLocale.getText('units.nm');
+            return (Math.round(0.539956803 * length) / 1000) + ' ' + gmxAPIutils.getText('units.nm');
         } else if (type === 'km') {
             return (Math.round(length) / 1000) + km;
         } else if (length < 2000 || type === 'm') {
-            return Math.round(length) + ' ' + L.gmxLocale.getText('units.m');
+            return Math.round(length) + ' ' + gmxAPIutils.getText('units.m');
         } else if (length < 200000) {
             return (Math.round(length / 10) / 100) + km;
         }
@@ -18352,14 +18352,14 @@ var gmxAPIutils = {
      * @return {String} prettified area
     */
     prettifyArea: function(area, type) {
-        var km2 = ' ' + L.gmxLocale.getText('units.km2');
+        var km2 = ' ' + gmxAPIutils.getText('units.km2');
 
         if (type === 'km2') {
             return ('' + (Math.round(area / 100) / 10000)) + km2;
         } else if (type === 'ha') {
-            return ('' + (Math.round(area / 100) / 100)) + ' ' + L.gmxLocale.getText('units.ha');
+            return ('' + (Math.round(area / 100) / 100)) + ' ' + gmxAPIutils.getText('units.ha');
         } else if (area < 100000 || type === 'm2') {
-            return Math.round(area) + ' ' + L.gmxLocale.getText('units.m2');
+            return Math.round(area) + ' ' + gmxAPIutils.getText('units.m2');
         } else if (area < 3000000) {
             return ('' + (Math.round(area / 1000) / 1000)).replace('.', ',') + km2;
         } else if (area < 30000000) {
@@ -18645,7 +18645,7 @@ var gmxAPIutils = {
 					var latLngGeometry = L.gmxUtil.geometryToGeoJSON(geom, true, unitOptions.srs == 3857);
                     if (type.indexOf('POINT') !== -1) {
                         var latlng = L.latLng(latLngGeometry.coordinates.reverse());
-                        out = '<b>' + L.gmxLocale.getText('Coordinates') + '</b>: '
+                        out = '<b>' + gmxAPIutils.getText('Coordinates') + '</b>: '
                             + gmxAPIutils.getCoordinatesString(latlng, unitOptions.coordinatesFormat);
                     } else if (type.indexOf('LINESTRING') !== -1) {
                         res += gmxAPIutils.geoJSONGetLength(latLngGeometry);
@@ -18657,10 +18657,10 @@ var gmxAPIutils = {
         }
         if (!out) {
             if (type.indexOf('LINESTRING') !== -1) {
-                out = '<b>' + L.gmxLocale.getText('Length') + '</b>: '
+                out = '<b>' + gmxAPIutils.getText('Length') + '</b>: '
                     + gmxAPIutils.prettifyDistance(res, unitOptions.distanceUnit);
             } else if (type.indexOf('POLYGON') !== -1) {
-                out = '<b>' + L.gmxLocale.getText('Area') + '</b>: '
+                out = '<b>' + gmxAPIutils.getText('Area') + '</b>: '
                     + gmxAPIutils.prettifyArea(res, unitOptions.squareUnit);
             }
         }
@@ -19403,6 +19403,7 @@ L.extend(L.gmxUtil, {
     isIE10: gmxAPIutils.isIE(10),
     isIE11: gmxAPIutils.isIE(11),
     gtIE11: gmxAPIutils.gtIE(11),
+	getText: gmxAPIutils.getText,
     getFormData: gmxAPIutils.getFormData,
     requestJSONP: gmxAPIutils.requestJSONP,
     requestLink: gmxAPIutils.requestLink,
@@ -20931,10 +20932,10 @@ var Observer = L.Class.extend({
         return this;
     },
 
-    deactivate: function() {
+    deactivate: function(withoutActivate) {
         if (this.active) {
             this.active = false;
-            this.fire('activate');
+            if (!withoutActivate) { this.fire('activate'); }
         }
         return this;
     },
@@ -22006,7 +22007,7 @@ var DataManager = L.Class.extend({
 				if (z && observer.z === z) {
 					continue;
 				}
-				observer.deactivate();
+				observer.deactivate(true);
 				this.removeObserver(k);
 			}
         }
@@ -22610,7 +22611,7 @@ L.gmx = L.gmx || {};
 L.gmx.DataManager = DataManager;
 
 
-L.gmx.VectorLayer = L.GridLayer.extend({
+var ext = L.extend({
     options: {
 		tilesCRS: L.CRS.EPSG3395,
         openPopups: [],
@@ -22679,134 +22680,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
             this._gmx.crossOrigin = options.crossOrigin;
         }
 	},
-/*
-	__repaintNotLoaded: function () {
-		//return;
-		if (!this._map) { return; }
 
-		var arr = [], key, tile, z;
-		for (key in this._tiles) {
-			tile = this._tiles[key];
-			z = tile.coords.z;
-			if (z == this._tileZoom) {
-				if (!tile.loaded) {
-					arr.push(key);
-					//break;
-				// } else if (tile.count) {
-					// if (!tile.el.parentNode && this._levels[z]) {
-						// this._levels[z].el.appendChild(tile.el);
-					// }
-				// } else if (tile.el.parentNode) {
-					// tile.el.parentNode.removeChild(tile.el);
-				}
-			}
-		}
-		if (arr.length) {
-			// console.log('_repaintNotLoaded ', this._gmx.layerID, arr.length);
-			this.repaint(arr);
-		} else if (this.options.clearCacheOnLoad) {
-			this._gmx.rastersCache = {};
-			this._gmx.quicklooksCache = {};
-		}
-    },
-	__runRepaint: function (msek) {
-		if (this.__repaintNotLoadedTimer) { clearTimeout(this.__repaintNotLoadedTimer); }
-		this.__repaintNotLoadedTimer = setTimeout(L.bind(this.__repaintNotLoaded, this), msek || 100);
-    },
-*/
-	//block: extended from L.GridLayer
-	_setView: function (center, zoom, noPrune, noUpdate) {
-		if (!this._map || this._map._animatingZoom) { return; }
-		L.GridLayer.prototype._setView.call(this, center, zoom, noPrune, noUpdate);
-	},
-/*
-	_updateOpacity: function () {
-		if (!this._map) { return; }
-
-		// IE doesn't inherit filter opacity properly, so we're forced to set it on tiles
-		if (L.Browser.ielt9) { return; }
-		var willPrune = false;
-		for (var key in this._tiles) {
-			var tile = this._tiles[key];
-			if (!tile.current || !tile.loaded) { continue; }
-			if (tile.active) {
-				willPrune = true;
-			}
-			tile.active = true;
-		}
-		if (willPrune && !this._noPrune) { this._pruneTiles(); }
-	},
-
-	_tileReady: function (coords, err, tile) {
-		if (!this._map) { return; }
-
-		if (err) {
-			// @event tileerror: TileErrorEvent
-			// Fired when there is an error loading a tile.
-			this.fire('tileerror', {
-				error: err,
-				tile: tile,
-				coords: coords
-			});
-		}
-
-		var key = this._tileCoordsToKey(coords);
-
-		tile = this._tiles[key];
-		if (!tile) { return; }
-
-		tile.loaded = +new Date();
-		if (this._map._fadeAnimated) {
-			L.Util.cancelAnimFrame(this._fadeFrame);
-			this._fadeFrame = L.Util.requestAnimFrame(this._updateOpacity, this);
-		} else {
-			tile.active = true;
-		}
-
-		if (!err) {
-			L.DomUtil.addClass(tile.el, 'leaflet-tile-loaded');
-
-			// @event tileload: TileEvent
-			// Fired when a tile loads.
-			this.fire('tileload', {
-				tile: tile.el,
-				coords: coords
-			});
-		}
-
-		if (this._noTilesToLoad()) {
-			this._loading = false;
-			// @event load: Event
-			// Fired when the grid layer loaded all visible tiles.
-			this.fire('load');
-
-			if (L.Browser.ielt9 || !this._map._fadeAnimated) {
-				L.Util.requestAnimFrame(this._pruneTiles, this);
-			} else {
-				// Wait a bit more than 0.2 secs (the duration of the tile fade-in)
-				// to trigger a pruning.
-				setTimeout(L.bind(this._pruneTiles, this), 250);
-			}
-		}
-	},
-
-	// stops loading all tiles in the background layer
-	_abortLoading: function () {
-// console.log('_abortLoading ', this._loading, this._tileZoom, this._map._zoom, this._map.getZoom());
-		var zoom = this._tileZoom,
-			i, tile;
-		for (i in this._tiles) {
-			tile = this._tiles[i];
-			if (tile.observer) {
-				if (tile.coords.z === zoom) {
-					tile.observer.activate();
-				} else {
-					tile.observer.deactivate();
-				}
-			}
-		}
-	},
-*/
     _onCreateLevel: function(level) {
 		this._updateShiftY(level.zoom);
 		//console.log('_onCreateLevel ', level);
@@ -22830,7 +22704,7 @@ L.gmx.VectorLayer = L.GridLayer.extend({
     },
 
 	_onmoveend: function () {
-// console.log('_onmoveend', this._gmx.layerID, arguments);
+		// console.log('_onmoveend', this._gmx.layerID, arguments);
 		var zoom = this._tileZoom,
 			key, tile;
 
@@ -22846,22 +22720,36 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 				}
 			}
 		}
+		this._removeScreenObservers(zoom, true);
+		//L.DomUtil.addClass(this._level.el, 'leaflet-zoom-animated');
+		// if (L.Browser.any3d) {
+			// L.DomUtil.setTransform(this._level.el, this._map._translateFrom, 1);
+		// } else {
+			// L.DomUtil.setPosition(this._level.el, this._map._translateFrom);
+		// }
+	},
+
+	_removeScreenObservers: function (z, flag) {
         if (this._gmx && this._gmx.dataManager) {
 			var dm = this._gmx.dataManager;
-			dm.removeScreenObservers(zoom);
-			dm.fire('moveend');
+			dm.removeScreenObservers(z);
+			if (flag) {
+				dm.fire('moveend');
+			}
 		}
 	},
 
 	_getEvents: function () {
 		var events = L.GridLayer.prototype.getEvents.call(this);
 		L.extend(events, {
-			// zoomstart: function() {
-				// this._gmx.zoomstart = true;
-			// },
-			beforezoomanim: function(ev) {
-				this._setZoomTransforms(ev.center, ev.zoom);
+			zoomstart: function() {
+				// console.log('zoomstart', this._gmx.layerID, arguments);
 				this._gmx.zoomstart = true;
+				this._removeScreenObservers();
+			},
+			zoomanim: function(ev) {
+				this._setZoomTransforms(ev.center, ev.zoom);
+				// this._gmx.zoomstart = true;
 			},
 			zoomend: function() {
 				this._gmx.zoomstart = false;
@@ -23064,78 +22952,6 @@ L.gmx.VectorLayer = L.GridLayer.extend({
         }
 	},
 
-    _update: function (center) {
-		if (!this._map || this._map._animatingZoom) { return; }
-        L.GridLayer.prototype._update.call(this, center);
-    },
-	// Private method to load tiles in the grid's active zoom level according to map bounds
-	/*
-	_update: function (center) {
-		var map = this._map;
-		if (!map) { return; }
-		var zoom = this._clampZoom(map.getZoom());
-
-		if (center === undefined) { center = map.getCenter(); }
-		if (this._tileZoom === undefined) { return; }	// if out of minzoom/maxzoom
-
-		var pixelBounds = this._getTiledPixelBounds(center),
-		    tileRange = this._pxBoundsToTileRange(pixelBounds),
-		    // tileCenter = tileRange.getCenter(),
-		    queue = [],
-		    margin = this.options.keepBuffer,
-		    noPruneRange = new L.Bounds(tileRange.getBottomLeft().subtract([margin, -margin]),
-		                              tileRange.getTopRight().add([margin, -margin]));
-
-		// Sanity check: panic if the tile range contains Infinity somewhere.
-		if (!(isFinite(tileRange.min.x) &&
-		      isFinite(tileRange.min.y) &&
-		      isFinite(tileRange.max.x) &&
-		      isFinite(tileRange.max.y))) { throw new Error('Attempted to load an infinite number of tiles'); }
-
-		for (var key in this._tiles) {
-			var c = this._tiles[key].coords;
-			if (c.z !== this._tileZoom || !noPruneRange.contains(new L.Point(c.x, c.y))) {
-				this._tiles[key].current = false;
-			}
-		}
-
-		// _update just loads more tiles. If the tile zoom level differs too much
-		// from the map's, let _setView reset levels and prune old tiles.
-		if (Math.abs(zoom - this._tileZoom) > 1) { this._setView(center, zoom); return; }
-
-		// create a queue of coordinates to load tiles from
-		var i, j, len, coords;
-		for (j = tileRange.min.y; j <= tileRange.max.y; j++) {
-			for (i = tileRange.min.x; i <= tileRange.max.x; i++) {
-				coords = new L.Point(i, j);
-				coords.z = this._tileZoom;
-
-				if (!this._isValidTile(coords)) { continue; }
-
-				var tile = this._tiles[this._tileCoordsToKey(coords)];
-				if (tile) {
-					tile.current = true;
-				} else {
-					queue.push(coords);
-				}
-			}
-		}
-
-		if (queue.length !== 0) {
-			// if it's the first batch of tiles to load
-			if (!this._loading) {
-				this._loading = true;
-				// @event loading: Event
-				// Fired when the grid layer starts loading tiles.
-				this.fire('loading');
-			}
-
-			for (i = 0, len = queue.length; i < len; i++) {
-				this._addTile(queue[i]);
-			}
-		}
-	},
-*/
 /*eslint-disable no-unused-vars */
 	createTile: function(coords , done) {
 		//this._test = [coords, done];
@@ -23158,25 +22974,6 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 		return tile;
     },
 /*eslint-enable */
-	_addTile: function (coords) {
-		var tile = this.createTile(this._wrapCoords(coords), L.bind(this._tileReady, this, coords)),
-			key = this._tileCoordsToKey(coords);
-
-		// save tile in cache
-		this._tiles[key] = {
-			el: tile,
-			coords: coords,
-			current: true
-		};
-
-		// @event tileloadstart: TileEvent
-		// Fired when a tile is requested and starts loading.
-		this.fire('tileloadstart', {
-			tile: tile,
-			key: key,
-			coords: coords
-		});
-	},
 
     //block: public interface
     initFromDescription: function(ph) {
@@ -23920,7 +23717,11 @@ L.gmx.VectorLayer = L.GridLayer.extend({
 			tileElem.resolve();
 		}
     }
+},
+{
 });
+L.gmx.VectorLayer = L.GridLayer.extend(ext);
+
 L.Map.addInitHook(function () {
     if (L.Mixin.ContextMenu) {
 		L.gmx.VectorLayer.include(L.Mixin.ContextMenu);
