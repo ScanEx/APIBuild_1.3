@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-18 10:26:42';
-var buildUUID = '4c830b51c45a47679664985293ed6dbe';
+var buildDate = '2018-2-18 15:01:07';
+var buildUUID = 'fb4133d263a8483aaa2d1b744c566d2c';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -1631,7 +1631,7 @@ return Promise$3;
 
 
 /* @preserve
- * Leaflet 1.3.1+Detached: e3b049cefdd2528aee3ecb003ede35dbb19d5f4b.e3b049c, a JS library for interactive maps. http://leafletjs.com
+ * Leaflet 1.3.1+Detached: fa374e67a2c78eff70a641d9f8907ffbcd9ff1c4.fa374e6, a JS library for interactive maps. http://leafletjs.com
  * (c) 2010-2017 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
@@ -1641,7 +1641,7 @@ return Promise$3;
 	(factory((global.L = {})));
 }(this, (function (exports) { 'use strict';
 
-var version = "1.3.1+HEAD.e3b049c";
+var version = "1.3.1+HEAD.fa374e6";
 
 /*
  * @namespace Util
@@ -8807,7 +8807,7 @@ var MarkerDrag = Handler.extend({
 		    map = marker._map,
 		    speed = this._marker.options.autoPanSpeed,
 		    padding = this._marker.options.autoPanPadding,
-		    iconPos = L.DomUtil.getPosition(marker._icon),
+		    iconPos = getPosition(marker._icon),
 		    bounds = map.getPixelBounds(),
 		    origin = map.getPixelOrigin();
 
@@ -8831,7 +8831,7 @@ var MarkerDrag = Handler.extend({
 			this._draggable._newPos._add(movement);
 			this._draggable._startPos._add(movement);
 
-			L.DomUtil.setPosition(marker._icon, this._draggable._newPos);
+			setPosition(marker._icon, this._draggable._newPos);
 			this._onDrag(e);
 
 			this._panRequest = requestAnimFrame(this._adjustPan.bind(this, e));
@@ -8863,7 +8863,7 @@ var MarkerDrag = Handler.extend({
 	_onDrag: function (e) {
 		var marker = this._marker,
 		    shadow = marker._shadow,
-		iconPos = getPosition(marker._icon),
+		    iconPos = getPosition(marker._icon),
 		    latlng = marker._map.layerPointToLatLng(iconPos);
 
 		// update shadow position
@@ -12888,7 +12888,7 @@ var GridLayer = Layer.extend({
 	},
 
 	_tileReady: function (coords, err, tile) {
-		if (!this._map) { return; }				// Add by Geomixer
+		if (!this._map || tile.getAttribute('src') === emptyImageUrl) { return; }
 
 		if (err) {
 			// @event tileerror: TileErrorEvent
@@ -13205,11 +13205,6 @@ var TileLayer = GridLayer.extend({
 				}
 			}
 		}
-	},
-
-	_tileReady: function (coords, err, tile) {		// Add by Geomixer
-		if (!this._map || tile.getAttribute('src') === emptyImageUrl) { return; }
-		GridLayer.prototype._tileReady.call(this, coords, err, tile);
 	}
 });
 
@@ -13326,7 +13321,7 @@ var TileLayerWMS = TileLayer.extend({
 		    bbox = (this._wmsVersion >= 1.3 && this._crs === EPSG4326 ?
 		    [min.y, min.x, max.y, max.x] :
 		    [min.x, min.y, max.x, max.y]).join(','),
-		url = L.TileLayer.prototype.getTileUrl.call(this, coords);
+		    url = TileLayer.prototype.getTileUrl.call(this, coords);
 		return url +
 			getParamString(this.wmsParams, url, this.options.uppercase) +
 			(this.options.uppercase ? '&BBOX=' : '&bbox=') + bbox;
@@ -13647,7 +13642,7 @@ var Canvas = Renderer.extend({
 
 		delete layer._order;
 
-		delete this._layers[L.stamp(layer)];
+		delete this._layers[stamp(layer)];
 
 		this._requestRedraw(layer);
 	},
@@ -16196,7 +16191,7 @@ L.gmx.Deferred = Deferred;
 
 			for (var i = 0, it, arr = this.jobs[url] || [], len = arr.length; i < len; i++) {
 				it = arr[i];
-				if (message.imageBitmap) { it.resolve(message); }
+				if (message.load) { it.resolve(message); }
 				else { it.reject(message); }
 			}
 			this.jobs[url].length = 0;
@@ -22905,7 +22900,8 @@ var ext = L.extend({
 			L.gmx.layersVersion.add(this);
 			this.fire('add');
 		}.bind(this));
-        gmx.styleManager.initStyles();
+		requestIdleCallback(L.bind(gmx.styleManager.initStyles, gmx.styleManager), {timeout: 25});
+        // gmx.styleManager.initStyles();
    },
 
     onRemove: function(map) {
@@ -23719,6 +23715,99 @@ var ext = L.extend({
     }
 },
 {
+	_tileReady: function (coords, err, tile) {
+		if (!this._map) { return; }				// Add by Geomixer (нет возможности отключения fade-anim)
+
+		if (err) {
+			// @event tileerror: TileErrorEvent
+			// Fired when there is an error loading a tile.
+			this.fire('tileerror', {
+				error: err,
+				tile: tile,
+				coords: coords
+			});
+		}
+
+		var key = this._tileCoordsToKey(coords);
+
+		tile = this._tiles[key];
+		if (!tile) { return; }
+
+		tile.loaded = +new Date();
+		if (this._map._fadeAnimated) {
+			// L.DomUtil.setOpacity(tile.el, 0);
+			L.Util.cancelAnimFrame(this._fadeFrame);
+			this._fadeFrame = L.Util.requestAnimFrame(this._updateOpacity, this);
+		} else {
+			tile.active = true;
+			this._pruneTiles();
+		}
+
+		if (!err) {
+			L.DomUtil.addClass(tile.el, 'leaflet-tile-loaded');
+
+			// @event tileload: TileEvent
+			// Fired when a tile loads.
+			this.fire('tileload', {
+				tile: tile.el,
+				coords: coords
+			});
+		}
+
+		if (this._noTilesToLoad()) {
+			this._loading = false;
+			// @event load: Event
+			// Fired when the grid layer loaded all visible tiles.
+			this.fire('load');
+
+			if (L.Browser.ielt9 || !this._map._fadeAnimated) {
+				L.Util.requestAnimFrame(this._pruneTiles, this);
+			} else {
+				// Wait a bit more than 0.2 secs (the duration of the tile fade-in)
+				// to trigger a pruning.
+				setTimeout(L.bind(this._pruneTiles, this), 250);
+			}
+		}
+	},
+
+	_updateOpacity: function () {		// Add by Geomixer (нет возможности отключения fade-anim)
+		if (!this._map) { return; }
+
+		// IE doesn't inherit filter opacity properly, so we're forced to set it on tiles
+		if (L.Browser.ielt9) { return; }
+
+		L.DomUtil.setOpacity(this._container, this.options.opacity);
+
+		var now = +new Date(),
+		    nextFrame = false,
+		    willPrune = false;
+
+		for (var key in this._tiles) {
+			var tile = this._tiles[key];
+			if (!tile.current || !tile.loaded) { continue; }
+
+			var fade = Math.min(1, (now - tile.loaded) / 200);
+
+			//L.DomUtil.setOpacity(tile.el, fade);
+			if (fade < 1) {
+				nextFrame = true;
+			} else {
+				if (tile.active) {
+					willPrune = true;
+				} else {
+					this._onOpaqueTile(tile);
+				}
+				tile.active = true;
+			}
+		}
+
+		if (willPrune && !this._noPrune) { this._pruneTiles(); }
+
+		if (nextFrame) {
+			L.Util.cancelAnimFrame(this._fadeFrame);
+			this._fadeFrame = L.Util.requestAnimFrame(this._updateOpacity, this);
+		}
+	}
 });
 L.gmx.VectorLayer = L.GridLayer.extend(ext);
 

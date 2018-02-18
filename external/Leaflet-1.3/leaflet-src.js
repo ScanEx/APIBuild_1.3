@@ -1,5 +1,5 @@
 /* @preserve
- * Leaflet 1.3.1+Detached: e3b049cefdd2528aee3ecb003ede35dbb19d5f4b.e3b049c, a JS library for interactive maps. http://leafletjs.com
+ * Leaflet 1.3.1+Detached: fa374e67a2c78eff70a641d9f8907ffbcd9ff1c4.fa374e6, a JS library for interactive maps. http://leafletjs.com
  * (c) 2010-2017 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
@@ -9,7 +9,7 @@
 	(factory((global.L = {})));
 }(this, (function (exports) { 'use strict';
 
-var version = "1.3.1+HEAD.e3b049c";
+var version = "1.3.1+HEAD.fa374e6";
 
 /*
  * @namespace Util
@@ -7175,7 +7175,7 @@ var MarkerDrag = Handler.extend({
 		    map = marker._map,
 		    speed = this._marker.options.autoPanSpeed,
 		    padding = this._marker.options.autoPanPadding,
-		    iconPos = L.DomUtil.getPosition(marker._icon),
+		    iconPos = getPosition(marker._icon),
 		    bounds = map.getPixelBounds(),
 		    origin = map.getPixelOrigin();
 
@@ -7199,7 +7199,7 @@ var MarkerDrag = Handler.extend({
 			this._draggable._newPos._add(movement);
 			this._draggable._startPos._add(movement);
 
-			L.DomUtil.setPosition(marker._icon, this._draggable._newPos);
+			setPosition(marker._icon, this._draggable._newPos);
 			this._onDrag(e);
 
 			this._panRequest = requestAnimFrame(this._adjustPan.bind(this, e));
@@ -7231,7 +7231,7 @@ var MarkerDrag = Handler.extend({
 	_onDrag: function (e) {
 		var marker = this._marker,
 		    shadow = marker._shadow,
-		iconPos = getPosition(marker._icon),
+		    iconPos = getPosition(marker._icon),
 		    latlng = marker._map.layerPointToLatLng(iconPos);
 
 		// update shadow position
@@ -11256,7 +11256,7 @@ var GridLayer = Layer.extend({
 	},
 
 	_tileReady: function (coords, err, tile) {
-		if (!this._map) { return; }				// Add by Geomixer
+		if (!this._map || tile.getAttribute('src') === emptyImageUrl) { return; }
 
 		if (err) {
 			// @event tileerror: TileErrorEvent
@@ -11573,11 +11573,6 @@ var TileLayer = GridLayer.extend({
 				}
 			}
 		}
-	},
-
-	_tileReady: function (coords, err, tile) {		// Add by Geomixer
-		if (!this._map || tile.getAttribute('src') === emptyImageUrl) { return; }
-		GridLayer.prototype._tileReady.call(this, coords, err, tile);
 	}
 });
 
@@ -11694,7 +11689,7 @@ var TileLayerWMS = TileLayer.extend({
 		    bbox = (this._wmsVersion >= 1.3 && this._crs === EPSG4326 ?
 		    [min.y, min.x, max.y, max.x] :
 		    [min.x, min.y, max.x, max.y]).join(','),
-		url = L.TileLayer.prototype.getTileUrl.call(this, coords);
+		    url = TileLayer.prototype.getTileUrl.call(this, coords);
 		return url +
 			getParamString(this.wmsParams, url, this.options.uppercase) +
 			(this.options.uppercase ? '&BBOX=' : '&bbox=') + bbox;
@@ -12015,7 +12010,7 @@ var Canvas = Renderer.extend({
 
 		delete layer._order;
 
-		delete this._layers[L.stamp(layer)];
+		delete this._layers[stamp(layer)];
 
 		this._requestRedraw(layer);
 	},
