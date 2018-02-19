@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-18 15:01:07';
-var buildUUID = 'fb4133d263a8483aaa2d1b744c566d2c';
+var buildDate = '2018-2-19 16:50:26';
+var buildUUID = '35d0a27497c54966b04c68e0923c4f2c';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22946,6 +22946,7 @@ var ext = L.extend({
 
            this._container.style.zIndex = zIndexOffset + zIndex;
         }
+	   this.fire('zindexupdated')
 	},
 
 /*eslint-disable no-unused-vars */
@@ -23715,6 +23716,13 @@ var ext = L.extend({
     }
 },
 {
+	_update: function (center) {				// Add by Geomixer (для события update _tiles)
+		if (this._map) {
+			L.GridLayer.prototype._update.call(this, center);
+			this.fire('update');
+		}
+	},
+
 	_tileReady: function (coords, err, tile) {
 		if (!this._map) { return; }				// Add by Geomixer (нет возможности отключения fade-anim)
 
@@ -26738,6 +26746,95 @@ L.gmx.RasterLayer = L.gmx.VectorLayer.extend(
         styles[0].MaxZoom = maxZoom;
         this.setStyles(styles);
     }
+});
+
+L.Map.addInitHook(function () {
+    if (this.options.multiRasterLayers) {		// All L.gmx.RasterLayer to one CR
+		var map = this,
+			visibleLayers = {},
+			curId = 0,
+			multiRasterLayer = L.gmx.createLayer({
+				properties: {
+					type: 'Vector',
+					GeometryType: 'polygon',
+					identityField: 'gmx_id',
+					ZIndexField: '_zIndex',
+					attributes: ['gmx_id', '_zIndex', 'MinZoom', 'MaxZoom', 'GMX_RasterCatalogID'],
+					attrTypes: ['integer', 'integer', 'integer', 'integer', 'string'],
+					IsRasterCatalog: true,
+					RCMinZoomForRasters: 1
+				}
+			})
+			.setFilter(function (it) {
+				var zoom = map.getZoom(),
+					pArr = it.properties;
+				return visibleLayers[pArr[5]] && zoom >= pArr[3] && zoom <= pArr[4];
+			})
+			.setStyles([
+				{
+					MinZoom: 1, MaxZoom: 21,
+					DisableBalloonOnClick: true,
+					DisableBalloonOnMouseMove: true,
+					RenderStyle: {weight: 0},
+					HoverStyle: {weight: 0}
+				}
+			])
+			.once('update', function () {
+				requestIdleCallback(multiRasterLayer.repaint.bind(multiRasterLayer), {timeout: 0});
+			}),
+			setVisible = function (it, flag) {
+				var rawProp = it.getGmxProperties(),
+					layerId = rawProp.name,
+					zindexupdated = function(ev) {
+						var opt = ev.target.options,
+							arr = visibleLayers[opt.layerID];
+						if (arr) {
+							arr[2] = (opt.zIndexOffset ? opt.zIndexOffset : 0) + (opt.zIndex ? opt.zIndex : 0);
+						}
+						multiRasterLayer.repaint();
+					};
+
+				if (flag) {
+					curId++;
+					var options = it.options,
+						zIndex = (options.zIndexOffset ? options.zIndexOffset : 0) + (options.zIndex ? options.zIndex : 0),
+						gmxId = curId,
+						pArr = [
+							gmxId,
+							gmxId,
+							zIndex,
+							rawProp.styles[0].MinZoom || 1,
+							rawProp.styles[0].MaxZoom || 21,
+							layerId,
+							it._gmx.geometry
+						];
+					multiRasterLayer.addData([pArr]);
+					visibleLayers[layerId] = pArr;
+					it.onRemove(map);
+					it.on('zindexupdated', zindexupdated);
+				} else {
+					it.off('zindexupdated', zindexupdated);
+					multiRasterLayer.removeData([visibleLayers[layerId]]);
+					visibleLayers[layerId] = null;
+				}
+				multiRasterLayer.repaint();
+			};
+
+		map
+			.on('layeradd', function (ev) {
+				var it = ev.layer;
+				if (it instanceof L.gmx.RasterLayer) {
+					setVisible(it, true);
+				}
+			})
+			.on('layerremove', function (ev) {
+				var it = ev.layer;
+				if (it instanceof L.gmx.RasterLayer) {
+					setVisible(it, false);
+				}
+			})
+			.addLayer(multiRasterLayer);
+	}
 });
 
 
