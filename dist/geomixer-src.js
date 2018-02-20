@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-19 16:50:26';
-var buildUUID = '35d0a27497c54966b04c68e0923c4f2c';
+var buildDate = '2018-2-20 16:21:42';
+var buildUUID = 'cac72762300441b4b332413c5af8d92d';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -31822,6 +31822,8 @@ L.Map.addInitHook(function () {
 
 L.GmxDrawing.Feature = L.LayerGroup.extend({
     options: {
+        // endTooltip: true,
+        endTooltip: '',
         smoothFactor: 0,
         mode: '' // add, edit
     },
@@ -31854,10 +31856,9 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         this._parent._addItem(this);
         if (this.options.type === 'Point') {
             map.addLayer(this._obj);
-            var _this = this;
-            setTimeout(function () {
-                _this._fireEvent('drawstop', _this._obj.options);
-            }, 0);
+            requestIdleCallback(function () {
+                this._fireEvent('drawstop', this._obj.options);
+            }.bind(this), {timeout: 0});
         } else {
 			var svgContainer = this._map._pathRoot || this._map._renderer._container;
 			if (svgContainer.getAttribute('pointer-events') !== 'visible') {
@@ -31869,6 +31870,8 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
 
     onRemove: function (map) {
         if ('hideTooltip' in this) { this.hideTooltip(); }
+		this._removeStaticTooltip();
+
         L.LayerGroup.prototype.onRemove.call(this, map);
 
         if (this.options.type === 'Point') {
@@ -31921,12 +31924,12 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         return this;
     },
 
-    _fireEvent: function (name) {
+    _fireEvent: function (name, options) {
         //console.log('_fireEvent', name);
         if (name === 'removefrommap' && this.rings.length > 1) {
             return;
         }
-        var event = {mode: this.mode || '', object: this};
+        var event = L.extend({}, {mode: this.mode || '', object: this}, options);
         this.fire(name, event);
         this._parent.fire(name, event);
         if (name === 'drawstop' && this._map) {
@@ -32284,6 +32287,14 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         return out;
     },
 
+    getLatLng: function () {
+		return this.lastAddLatLng;
+    },
+
+    _getTooltipAnchor: function () {
+		return this.lastAddLatLng;
+    },
+
     getSummary: function () {
         var str = '',
             mapOpt = this._map ? this._map.options : {},
@@ -32304,6 +32315,8 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         this.clearLayers();
         this.rings = [];
         this.mode = '';
+        this.lastAddLatLng = L.latLng(0, 0);		// последняя из добавленных точек
+
         this._fill = L.featureGroup();
 		if (this._fill.options) {
 			this._fill.options.smoothFactor = 0;
@@ -32334,6 +32347,10 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
                 }
                 this.rings.push({ring: ring, holes: holes});
             }
+
+			if (this.options.endTooltip && L.tooltip) {
+				this._initStaticTooltip();
+			}
 
             if (L.gmxUtil && L.gmxUtil.prettifyDistance && !this._showTooltip) {
                 var _gtxt = L.GmxDrawing.utils.getLocale;
@@ -32379,6 +32396,50 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         } else {
             this.addLayer(obj);
         }
+    },
+
+    _initStaticTooltip: function () {
+		this.on('drawstop editstop', function (ev) {
+			if (this.staticTooltip) {
+				this._removeStaticTooltip();
+			}
+
+			var latlng = ev.latlng,
+				map = this._map,
+				mapOpt = map ? map.options : {},
+				distanceUnit = mapOpt.distanceUnit,
+				squareUnit = mapOpt.squareUnit,
+				tCont = L.DomUtil.create('div', 'content'),
+				info = L.DomUtil.create('div', 'infoTooltip', tCont),
+				closeBtn = L.DomUtil.create('div', 'closeBtn', tCont),
+				str = this.options.type === 'Polygon' ?
+					L.gmxUtil.prettifyArea(this.getArea(), squareUnit)
+					:
+					L.gmxUtil.prettifyDistance(this.getLength(), distanceUnit);
+
+			info.innerHTML = str;
+			closeBtn.innerHTML = '×';
+			L.DomEvent.on(closeBtn, 'click', function() {
+				this._removeStaticTooltip();
+				this.remove();
+			}, this);
+
+			this.staticTooltip = L.tooltip({interactive: true, sticky: true, permanent: true, className: 'staticTooltip'})
+				.setLatLng(latlng)
+				.setContent(tCont)
+				.addTo(this._map);
+
+			requestIdleCallback(function () {
+				this.on('edit', this._removeStaticTooltip, this);
+			}.bind(this), {timeout: 0});
+		}, this);
+    },
+
+    _removeStaticTooltip: function () {
+		if (this.staticTooltip) {
+			this._map.removeLayer(this.staticTooltip);
+			this.staticTooltip = null;
+		}
     },
 
     _enableDrag: function () {
@@ -32731,13 +32792,14 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 
             if (maxPoints && len >= maxPoints) {
 				this.setEditMode();
-				this._fireEvent('drawstop');
+				this._fireEvent('drawstop', {latlng: point});
 				len--;
 			}
             if (flag) {
                 if (delta) { len -= delta; }    // reset existing point
                 this._setPoint(point, len, 'node');
             }
+			this._parent.lastAddLatLng = point;
         } else if ('addLatLng' in this._obj) {
             this._obj.addLatLng(point);
         }
@@ -32808,7 +32870,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
     },
 
     _mouseupPoint: function (ev) {
-		this._fireEvent('editstop');
+		this._fireEvent('editstop', ev);
 		this._pointUp(ev);
     },
 
@@ -32846,7 +32908,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
             this._map._skipClick = true;    // for EventsManager
         }
         if (this._drawstop) {
-            this._fireEvent('drawstop');
+            this._fireEvent('drawstop', ev);
         }
         this._drawstop = false;
         this.down = null;
@@ -32874,7 +32936,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 	},
 
     _clearLineAddPoint: function () {
-        if (this._lineAddPointID) { clearTimeout(this._lineAddPointID); }
+        if (this._lineAddPointID) { cancelIdleCallback(this._lineAddPointID); }
         this._lineAddPointID = null;
     },
 
@@ -32907,18 +32969,16 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
                         this.lineType = false;
                         this._removePoint(this._getLatLngsArr().length - 1);
                     }
-                    this._fireEvent('drawstop');
+                    this._fireEvent('drawstop', downAttr);
                     this._removePoint(num);
                 } else if (this.lineType) {
-                    var _this = this,
-                        setLineAddPoint = function () {
-                            _this._clearLineAddPoint();
-                            if (num === 0) { _this._getLatLngsArr().reverse(); }
-                            _this.points.addLatLng(downAttr.latlng);
-                            _this.setAddMode();
-                            _this._fireEvent('drawstop');
-                        };
-                    this._lineAddPointID = setTimeout(setLineAddPoint, 250);
+                    this._lineAddPointID = requestIdleCallback(function () {
+						this._clearLineAddPoint();
+						if (num === 0) { this._getLatLngsArr().reverse(); }
+						this.points.addLatLng(downAttr.latlng);
+						this.setAddMode();
+						this._fireEvent('drawstop', downAttr);
+					}.bind(this), {timeout: 250});
                 }
             } else if (mode === 'add') { // this is add pont
                 this.addLatLng(ev.latlng);
@@ -32960,8 +33020,8 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
         this._fireEvent('drag');
     },
 
-    _fireEvent: function (name) {
-        this._parent._fireEvent(name);
+    _fireEvent: function (name, options) {
+        this._parent._fireEvent(name, options);
     },
 
     _startTouchMove: function (ev, drawstop) {
@@ -33153,7 +33213,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 				this._pointUp();
 				this._fireEvent('drawstop');
 				if (this._map && this._map.contextmenu) {
-					setTimeout(this._map.contextmenu.enable.bind(this._map.contextmenu), 250);
+					requestIdleCallback(this._map.contextmenu.enable.bind(this._map.contextmenu), {timeout: 250});
 				}
 			} else {
 				var latlng = ev._latlng || ev.latlng;
@@ -35464,27 +35524,21 @@ GmxVirtualTileLayer.prototype.initFromDescription = function(layerDescription) {
         meta = props.MetaProperties,
         urlTemplate = meta['url-template'] && meta['url-template'].Value,
         isMercator = !!meta['merc-projection'],
+        optionsList = meta.optionsList ? meta.optionsList.Value.split(',') : [],
         options = {};
 
     if (!urlTemplate) {
         return new L.gmx.DummyLayer(props);
     }
 
-    if (props.Copyright) {
-        options.attribution = props.Copyright;
-    }
+    if (props.Copyright) { options.attribution = props.Copyright; }
 
-    if (meta.minZoom) {
-        options.minZoom = meta.minZoom.Value;
-    }
-
-    if (meta.maxZoom) {
-        options.maxZoom = meta.maxZoom.Value;
-    }
-
-    if (meta.maxNativeZoom) {
-        options.maxNativeZoom = meta.maxNativeZoom.Value;
-    }
+	optionsList = optionsList.concat(['tms', 'minZoom', 'maxZoom', 'maxNativeZoom']);
+	options = L.extend({}, optionsList.reduce(function(prev, it) {
+		var key = it.trim();
+		if (meta[key]) { prev[key] = meta[key].Value.trim(); }
+		return prev;
+	}.bind(this), {}), options);
 
     var layer = (isMercator ? L.tileLayer.Mercator : L.tileLayer)(urlTemplate, options);
 
