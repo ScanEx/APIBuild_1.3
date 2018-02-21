@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-20 16:21:42';
-var buildUUID = 'cac72762300441b4b332413c5af8d92d';
+var buildDate = '2018-2-21 09:55:04';
+var buildUUID = '0a3a66e1ed54499598d8a85f9d7cf5ec';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -31822,8 +31822,7 @@ L.Map.addInitHook(function () {
 
 L.GmxDrawing.Feature = L.LayerGroup.extend({
     options: {
-        // endTooltip: true,
-        endTooltip: '',
+        endTooltip: 'center',
         smoothFactor: 0,
         mode: '' // add, edit
     },
@@ -32412,19 +32411,28 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
 				tCont = L.DomUtil.create('div', 'content'),
 				info = L.DomUtil.create('div', 'infoTooltip', tCont),
 				closeBtn = L.DomUtil.create('div', 'closeBtn', tCont),
-				str = this.options.type === 'Polygon' ?
-					L.gmxUtil.prettifyArea(this.getArea(), squareUnit)
-					:
-					L.gmxUtil.prettifyDistance(this.getLength(), distanceUnit);
+				polygon = this.options.type === 'Polygon',
+				tOptions = {interactive: true, sticky: true, permanent: true, className: 'staticTooltip'};
 
-			info.innerHTML = str;
+			if (polygon) {
+				if (this.options.endTooltip === 'center') {
+					tOptions.direction = 'center';
+					latlng = this.getBounds().getCenter();
+				}
+				info.innerHTML = L.gmxUtil.prettifyArea(this.getArea(), squareUnit);
+			} else {
+				tOptions.offset = L.point(10, 0);
+				var arr = this.rings[0].ring.points.getLatLngs()[0];
+				latlng = arr[arr.length - 1];
+				info.innerHTML = L.gmxUtil.prettifyDistance(this.getLength(), distanceUnit);
+			}
 			closeBtn.innerHTML = '×';
 			L.DomEvent.on(closeBtn, 'click', function() {
 				this._removeStaticTooltip();
 				this.remove();
 			}, this);
 
-			this.staticTooltip = L.tooltip({interactive: true, sticky: true, permanent: true, className: 'staticTooltip'})
+			this.staticTooltip = L.tooltip(tOptions)
 				.setLatLng(latlng)
 				.setContent(tCont)
 				.addTo(this._map);
