@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-21 12:45:13';
-var buildUUID = '9992f051156f4b6f92c8cad466074f43';
+var buildDate = '2018-2-21 15:35:44';
+var buildUUID = '1feb6297967643a39784f884b7354c48';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -23725,6 +23725,50 @@ var ext = L.extend({
     }
 },
 {
+	_updateLevels: function () {		// Add by Geomixer (coords.z is Number however _levels keys is String)
+
+		var zoom = this._tileZoom,
+		    maxZoom = this.options.maxZoom;
+
+		if (zoom === undefined) { return undefined; }
+
+		for (var z in this._levels) {
+			var delta = zoom - z;
+			if (this._levels[z].el.children.length || delta === 0) {
+				this._levels[z].el.style.zIndex = maxZoom - Math.abs(delta);
+				this._onUpdateLevel(z);
+			} else {
+				L.DomUtil.remove(this._levels[z].el);
+				this._removeTilesAtZoom(z);
+				this._onRemoveLevel(z);
+				delete this._levels[z];
+			}
+		}
+
+		var level = this._levels[zoom],
+		    map = this._map;
+
+		if (!level) {
+			level = this._levels[zoom] = {};
+
+			level.el = L.DomUtil.create('div', 'leaflet-tile-container leaflet-zoom-animated', this._container);
+			level.el.style.zIndex = maxZoom;
+
+			level.origin = map.project(map.unproject(map.getPixelOrigin()), zoom).round();
+			level.zoom = zoom;
+
+			this._setZoomTransform(level, map.getCenter(), map.getZoom());
+
+			// force the browser to consider the newly added element for transition
+			L.Util.falseFn(level.el.offsetWidth);
+
+			this._onCreateLevel(level);
+		}
+
+		this._level = level;
+
+		return level;
+	},
 	_removeTilesAtZoom: function (zoom) {		// Add by Geomixer (coords.z is Number however _levels keys is String)
 		zoom = Number(zoom);
 		for (var key in this._tiles) {
@@ -31842,7 +31886,7 @@ L.Map.addInitHook(function () {
 
 L.GmxDrawing.Feature = L.LayerGroup.extend({
     options: {
-        endTooltip: 'center',
+        endTooltip: '',
         smoothFactor: 0,
         mode: '' // add, edit
     },
@@ -32898,8 +32942,11 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
     },
 
     _mouseupPoint: function (ev) {
-		this._fireEvent('editstop', ev);
 		this._pointUp(ev);
+        if (this.__mouseupPointTimer) { cancelIdleCallback(this.__mouseupPointTimer); }
+		this.__mouseupPointTimer = requestIdleCallback(function() {
+			this._fireEvent('editstop', ev);
+		}.bind(this), {timeout: 250});
     },
 
     _pointMove: function (ev) {
