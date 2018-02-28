@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-27 15:50:28';
-var buildUUID = '0b1d597b10f14b88815a4f1d76f43349';
+var buildDate = '2018-2-28 10:13:51';
+var buildUUID = 'b1b188f8e3bb4696a815b90aeba2ab3c';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -32380,6 +32380,11 @@ L.GmxDrawing = L.Class.extend({
                 type: type,
                 eventName: type === 'Rectangle' ? (L.Browser.mobile ? 'touchstart' : 'mousedown') : 'click',
                 fn: function (ev) {
+					var originalEvent = ev && ev.originalEvent;
+					if (originalEvent) {
+						var clickOnTag = originalEvent.target.tagName;
+						if (clickOnTag === 'g' || clickOnTag === 'path') { return; }
+					}
                     my._createType = '';
                     var obj, key,
                         opt = {},
@@ -32395,10 +32400,10 @@ L.GmxDrawing = L.Class.extend({
                             markerOpt = {
                                 draggable: true
                             };
-                        if (ev && ev.originalEvent) {
-                            markerOpt.ctrlKey = ev.originalEvent.ctrlKey;
-                            markerOpt.shiftKey = ev.originalEvent.shiftKey;
-                            markerOpt.altKey = ev.originalEvent.altKey;
+                        if (originalEvent) {
+                            markerOpt.ctrlKey = originalEvent.ctrlKey;
+                            markerOpt.shiftKey = originalEvent.shiftKey;
+                            markerOpt.altKey = originalEvent.altKey;
                         }
                         if (markerStyle.iconStyle) {
                             markerOpt.icon = L.icon(markerStyle.iconStyle);
