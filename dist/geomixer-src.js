@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-28 10:13:51';
-var buildUUID = 'b1b188f8e3bb4696a815b90aeba2ab3c';
+var buildDate = '2018-2-28 12:58:04';
+var buildUUID = '38b97d879dc549c7b72521dd0702edf1';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -36408,10 +36408,21 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
     };
 
     var balloonTemplate = meta['balloonTemplate'] && meta['balloonTemplate'].Value;
+    var infoFormat = meta['info_format'] && meta['info_format'].Value;
+    var popupURLTemplate = meta['popupURLTemplate'] && meta['popupURLTemplate'].Value;
+
     if (meta['clickable'] && balloonTemplate) {
         layer.options.clickable = true;
 
+        layer.onAdd = function(map) {
+			var mapCont = map.getContainer();
+			mapCont.style.cursor = 'help';
+            L.TileLayer.WMS.prototype.onAdd.apply(this, arguments);
+        }
+
         layer.onRemove = function(map) {
+			var mapCont = map.getContainer();
+			mapCont.style.cursor = '';	// auto
             lastOpenedPopup && map.removeLayer(lastOpenedPopup);
             L.TileLayer.WMS.prototype.onRemove.apply(this, arguments);
         }
@@ -36419,27 +36430,51 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
         var lastOpenedPopup;
         layer.gmxEventCheck = function(event) {
             if (event.type === 'click') {
-                var p = this._map.project(event.latlng),
-                    tileSize = layer.options.tileSize,
-                    I = p.x % tileSize,
-                    J = p.y % tileSize,
-                    tilePoint = p.divideBy(tileSize).floor(),
-                    url = this.getTileUrl(tilePoint);
+                var latlng = event.latlng;
 
-                url = url.replace('=GetMap', '=GetFeatureInfo');
-                url += '&X=' + I + '&Y=' + J + '&INFO_FORMAT=application/geojson&QUERY_LAYERS=' + options.layers;
+				if (popupURLTemplate) {
+					var url = L.Util.template(popupURLTemplate, {lat: latlng.lat, lng: latlng.lng});
+					var gmxProxy = L.gmx.gmxProxy || '//maps.kosmosnimki.ru/ApiSave.ashx';
+					fetch(gmxProxy + '?WrapStyle=none&get=' + encodeURIComponent(url), {mode: 'cors'})
+						.then(function(resp) {
+							return resp.json();
+						})
+						.then(function(json) {
+							if (json.Status === 'ok' && json.Result) {
+								var content = L.DomUtil.create('div', '');
+								content.innerHTML = json.Result;
+								lastOpenedPopup = L.popup({maxHeight: 400})
+									.setLatLng(latlng)
+									.setContent(content)
+									.openOn(this._map);
+							}
+						}.bind(this))
+						.catch(console.log);
+				} else {
+					var p = this._map.project(latlng),
+						tileSize = layer.options.tileSize,
+						I = p.x % tileSize,
+						J = p.y % tileSize,
+						tilePoint = p.divideBy(tileSize).floor(),
+						url = this.getTileUrl(tilePoint),
+						info = infoFormat || 'application/geojson';
 
-				/*eslint-disable no-undef */
-                $.getJSON(url).then(function(geoJSON) {
-                    if (geoJSON.features[0]) {
-                        var html = template(balloonTemplate, geoJSON.features[0].properties);
-                        lastOpenedPopup = L.popup()
-                            .setLatLng(event.latlng)
-                            .setContent(html)
-                            .openOn(this._map);
-                    }
-                }.bind(this));
-				/*eslint-enable */
+					url = url.replace('=GetMap', '=GetFeatureInfo');
+					// url += '&X=' + I + '&Y=' + J + '&QUERY_LAYERS=' + options.layers;
+					url += '&X=' + I + '&Y=' + J + '&INFO_FORMAT=' + info + '&QUERY_LAYERS=' + options.layers;
+
+					/*eslint-disable no-undef */
+					$.getJSON(url).then(function(geoJSON) {
+						if (geoJSON.features[0]) {
+							var html = template(balloonTemplate, geoJSON.features[0].properties);
+							lastOpenedPopup = L.popup()
+								.setLatLng(event.latlng)
+								.setContent(html)
+								.openOn(this._map);
+						}
+					}.bind(this));
+					/*eslint-enable */
+				}
             }
 
             return 1;
