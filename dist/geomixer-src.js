@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-2-28 12:58:04';
-var buildUUID = '38b97d879dc549c7b72521dd0702edf1';
+var buildDate = '2018-3-1 10:14:00';
+var buildUUID = 'd8916d63dfd84083ba878ac68457cdc0';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -36415,14 +36415,12 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
         layer.options.clickable = true;
 
         layer.onAdd = function(map) {
-			var mapCont = map.getContainer();
-			mapCont.style.cursor = 'help';
+			L.DomUtil.addClass(map.getContainer(), 'gmx-cursor-help');
             L.TileLayer.WMS.prototype.onAdd.apply(this, arguments);
         }
 
         layer.onRemove = function(map) {
-			var mapCont = map.getContainer();
-			mapCont.style.cursor = '';	// auto
+			L.DomUtil.removeClass(map.getContainer(), 'gmx-cursor-help');
             lastOpenedPopup && map.removeLayer(lastOpenedPopup);
             L.TileLayer.WMS.prototype.onRemove.apply(this, arguments);
         }

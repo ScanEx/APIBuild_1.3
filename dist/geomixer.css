@@ -636,6 +636,16 @@
 	}
 
 
+/* cursors */
+.gmx-cursor-help {
+    cursor: help;    
+}
+
+.gmx-cursor-pointer {
+    cursor: pointer;    
+}
+
+
 .leaflet-gmx-icons {
     margin-left: 50px;
 }

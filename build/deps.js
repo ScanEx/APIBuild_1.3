@@ -12,7 +12,7 @@ var apiFiles = [
 	{
 		key: 'Leaflet-1.3',						// path in external
 		js: ['leaflet-src.js'],
-		css: ['leaflet.css'],
+		css: ['leaflet.css', 'gmx-external.css'],
 		img: { src: 'images', out: 'images' }
 	},
 	{
