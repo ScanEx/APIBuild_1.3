@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-3-4 20:17:25';
-var buildUUID = 'c5ed259eae13439eb2548da97b91d3a4';
+var buildDate = '2018-3-5 14:17:39';
+var buildUUID = '19f38562ea624b4b8f5762ca5acfb3c1';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -15481,7 +15481,7 @@ var gmxAPIutils = {
         return id;
     },
 
-    apiLoadedFrom: document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/')),
+    apiLoadedFrom: document.currentScript ? document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/')) : '',
     isPageHidden: function()	{		// Видимость окна браузера
         return document.hidden || document.msHidden || document.webkitHidden || document.mozHidden || false;
     },
@@ -18497,6 +18497,8 @@ if (!('requestIdleCallback' in window)) {
 	}
 	window.cancelIdleCallback = window.clearTimeout;
 }
+L.gmx = L.gmx || {};
+L.gmx.gmxProxy = '//maps.kosmosnimki.ru/ApiSave.ashx';
 
 (function() {
     var requests = {};
@@ -22925,7 +22927,7 @@ var ext = L.extend({
 		this._tiles = {};
 		this._initContainer();
 
-		gmx.styleManager.promise.then(function () {
+		gmx.styleManager.initStyles().then(function () {
 			if (gmx.balloonEnable && !this._popup) { this.bindPopup(''); }
 
 			if (this._map) {
@@ -22944,11 +22946,8 @@ var ext = L.extend({
 				this._onmoveend();
 			}
 			this._addLayerVersion();
-			// L.gmx.layersVersion.add(this);
 			this.fire('add');
 		}.bind(this));
-		requestIdleCallback(L.bind(gmx.styleManager.initStyles, gmx.styleManager), {timeout: 25});
-        // gmx.styleManager.initStyles();
    },
 
     onRemove: function(map) {
@@ -23623,6 +23622,9 @@ var ext = L.extend({
             if ('quicklookX4' in meta) { gmx.quicklookX4 = meta.quicklookX4.Value; }
             if ('quicklookY4' in meta) { gmx.quicklookY4 = meta.quicklookY4.Value; }
 
+            if ('gmxProxy' in meta) {    // Установка прокачивалки
+                gmx.gmxProxy = meta.gmxProxy.Value.toLowerCase() === 'true' ? L.gmx.gmxProxy : meta.gmxProxy.Value;
+            }
             if ('multiFilters' in meta) {    // проверка всех фильтров для обьектов слоя
                 gmx.multiFilters = meta.multiFilters.Value === '1' ? true : false;
             }
@@ -24478,7 +24480,11 @@ ScreenVectorTile.prototype = {
 			if (gmx.quicklooksCache && gmx.quicklooksCache[url]) {
 				done(gmx.quicklooksCache[url]);
 			} else if (L.gmx.getBitmap) {
-				L.gmx.getBitmap(url, fetchOptions).then(
+				var urlProxy = url;
+				if (gmx.gmxProxy) {
+					urlProxy = gmx.gmxProxy + '?WrapStyle=none&get=' + encodeURIComponent(url);
+				}
+				L.gmx.getBitmap(urlProxy, fetchOptions).then(
 					function(res) {
 						var imageObj = res.imageBitmap,
 							canvas_ = document.createElement('canvas');
@@ -26534,8 +26540,9 @@ var getRequestParams = function(layer) {
 				gmx = isDataManager ? obj : obj._gmx;
                 hostName = prop.hostName || obj._gmx.hostName;
                 var pt = getParams(prop, dm, gmx),
-                    key = pt.Name + pt.Version;
-                if (!skipItems[key]) {
+                    key = pt.Name + pt.Version,
+					valid = !skipItems[key] && (!prop.Temporal || pt.dateBegin);
+                if (valid) {
                     if (hosts[hostName]) { hosts[hostName].push(pt); }
                     else { hosts[hostName] = [pt]; }
                 }
