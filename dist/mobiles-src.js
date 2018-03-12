@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-3-5 14:17:39';
-var buildUUID = '19f38562ea624b4b8f5762ca5acfb3c1';
+var buildDate = '2018-3-12 09:43:57';
+var buildUUID = '6b144b23e74f43e9bfeb9f28cc12e5ad';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -15474,14 +15474,67 @@ var gmxAPIutils = {
         return '_' + gmxAPIutils.lastMapId;
     },
 
-    uniqueGlobalName: function(thing)
-    {
+    uniqueGlobalName: function(thing) {
         var id = gmxAPIutils.newId();
         window[id] = thing;
         return id;
     },
 
-    apiLoadedFrom: document.currentScript ? document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/')) : '',
+    _apiLoadedFrom: null,
+    apiLoadedFrom: function(scr) {
+		if (gmxAPIutils._apiLoadedFrom === null) {
+			var str = document.currentScript ? document.currentScript.src : gmxAPIutils._searchApiScriptUrl(scr);
+			gmxAPIutils._apiLoadedFrom = str ? str.substring(0, str.lastIndexOf('/')) : '';
+		}
+		return gmxAPIutils._apiLoadedFrom;
+	},
+    _searchApiScriptUrl: function(scr) {
+		var scriptRegexp = scr ? [
+			new RegExp('\b'+ scr + '\b')
+		] : [
+			/\bleaflet-geomixer(-\w*)?\.js\b/,
+			/\bgeomixer(-\w*)?\.js\b/
+		];
+
+        var scripts = document.getElementsByTagName('script');
+        for (var i = 0, len = scripts.length; i < len; i++) {
+            var src = scripts[i].getAttribute('src');
+			for (var j = 0, len1 = scriptRegexp.length; j < len1; j++) {
+				if (scriptRegexp[j].exec(src)) {
+					gmxAPIutils._apiLoadedFrom = src.split('?')[0];
+					break;
+				}
+            }
+			if (gmxAPIutils._apiLoadedFrom) {
+				break;
+			}
+        }
+        return gmxAPIutils._apiLoadedFrom || '';
+    },
+    searchScriptAPIKey: function() {
+		for (var i = 0, params = gmxAPIutils._searchApiScriptUrl(), len = params.length; i < len; i++) {
+			var parsedParam = params[i].split('=');
+			if (parsedParam[0] === 'key') {
+				return parsedParam[1];
+			}
+		}
+        return '';
+    },
+
+    createWorker: function(url)	{		// Создание Worker-а
+        return new Promise(function(resolve, reject) {
+			if ('createImageBitmap' in window && 'Worker' in window) {
+				fetch(url, {mode: 'cors'})
+				.then(function(resp) { return resp.blob(); })
+				.then(function(blob) {
+					resolve(new Worker(window.URL.createObjectURL(blob, {type: 'application/javascript; charset=utf-8'})));
+				});
+			} else {
+				reject({error: 'Browser don`t support `createImageBitmap` or `Worker`'});
+			}
+		});
+    },
+
     isPageHidden: function()	{		// Видимость окна браузера
         return document.hidden || document.msHidden || document.webkitHidden || document.mozHidden || false;
     },
@@ -18410,6 +18463,7 @@ if (!L.gmxUtil) { L.gmxUtil = {}; }
 //public interface
 L.extend(L.gmxUtil, {
 	debug: gmxAPIutils.debug,
+	createWorker: gmxAPIutils.createWorker,
 	apiLoadedFrom: gmxAPIutils.apiLoadedFrom,
     newId: gmxAPIutils.newId,
 	isPageHidden: gmxAPIutils.isPageHidden,
@@ -19351,15 +19405,8 @@ L.gmx.Deferred = Deferred;
 
 (function() {
 'use strict';
-
-	var worker;
-	if ('createImageBitmap' in window && 'Worker' in window && location.protocol !== 'file:') {
-		worker = new Worker(location.href.replace(/[^/]*$/, 'ImageBitmapLoader-worker.js'));
-	}
-	if (!worker) {
-		return;
-	}
-
+L.gmxUtil.createWorker(L.gmxUtil.apiLoadedFrom() + '/ImageBitmapLoader-worker.js')
+.then(function(worker) {
 	var ImageBitmapLoader = function() {
 		this.jobs = {};
 		this.worker = worker;
@@ -19411,6 +19458,7 @@ L.gmx.Deferred = Deferred;
 		delete L.gmx.getJSON;
 		delete L.gmx.sendCmd;
 	};
+});
 })();
 
 
@@ -20420,6 +20468,8 @@ var GmxEventsManager = L.Handler.extend({
 			map = this._map;
 
 		if (ev.originalEvent) {
+			var tagName = ev.originalEvent.target.tagName;
+			if (tagName === 'path') { return; }
 			map.gmxMouseDown = L.Browser.webkit && !L.gmxUtil.isIEOrEdge ? ev.originalEvent.which : ev.originalEvent.buttons;
 		}
 		if (map._animatingZoom ||
@@ -22695,9 +22745,6 @@ var ext = L.extend({
 		if (/\buseWebGL=1\b/.test(location.search)) {
 			this._gmx.useWebGL = true;
 		}
-		if (/\bdebug=1\b/.test(location.search)) {
-			this._gmx.debug = true;
-		}
         if (options.cacheQuicklooks) {			// cache quicklooks for CR
             this._gmx.quicklooksCache = {};
         }
@@ -22822,7 +22869,7 @@ var ext = L.extend({
 					tLink = this._tiles[key];
 
 				tLink.loaded = 0;
-				// if (gmx.debug) {
+				// if (L.gmxUtil.debug) {
 					// console.log('tileloadstart ', this._loading, this._tileZoom, ev);
 				// }
 			},
@@ -22854,12 +22901,12 @@ var ext = L.extend({
 				// window.startTest = Date.now();
 				if (this._onmoveendTimer) { cancelIdleCallback(this._onmoveendTimer); }
 				this._onmoveendTimer = requestIdleCallback(L.bind(this._onmoveend, this), {timeout: 25});
-				if (gmx.debug) {
+				if (L.gmxUtil.debug) {
 				// if (gmx.layerID === '47DFB999E03141C3A5367B514C673102') {
 					console.log('moveend ', this._tileZoom, gmx.layerID, this._loading, this._noTilesToLoad(), this._tileZoom, ev);
 				}
 			};
-			if (gmx.debug) {
+			if (L.gmxUtil.debug) {
 				// owner.load = function(ev) {
 					// var zoom = this._tileZoom,
 						// err = [],
@@ -24012,6 +24059,112 @@ L.Map.addInitHook(function () {
 	this.options.skipTiles = this.options.skipTiles || 'All';
 });
 
+if (L.gmxUtil.debug) {
+	L.Map.prototype._catchTransitionEnd = function (e) {
+	// console.log('_catchTransitionEnd', this._animatingZoom, Date.now() - window.startTest, e)
+		if (this._animatingZoom && e.propertyName.indexOf('transform') >= 0) {
+			this._onZoomTransitionEnd();
+		}
+	};
+	L.Map.prototype._createAnimProxy = function () {
+		// console.log('_createAnimProxy', this._animatingZoom, Date.now() - window.startTest)
+
+		var proxy = this._proxy = L.DomUtil.create('div', 'leaflet-proxy leaflet-zoom-animated');
+		this._panes.mapPane.appendChild(proxy);
+
+		this.on('zoomanim', function (e) {
+	window.startTest = Date.now();
+			var translate = this.project(this.unproject(this.getPixelOrigin()), e.zoom)
+					.subtract(this._getNewPixelOrigin(e.center, e.zoom)).round();
+
+			// var prop = L.DomUtil.TRANSFORM,
+				// transform = this._proxy.style[prop];
+
+	 console.log('zoomanim', translate, this._animatingZoom, Date.now() - window.startTest, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1), e)
+			L.DomUtil.setTransform(this._proxy, this.project(e.center, e.zoom), this.getZoomScale(e.zoom, 1));
+
+			// workaround for case when transform is the same and so transitionend event is not fired
+			// if (transform === this._proxy.style[prop] && this._animatingZoom) {
+				// this._onZoomTransitionEnd();
+			// }
+		}, this);
+
+		this.on('load moveend', function () {
+			var c = this.getCenter(),
+				z = this.getZoom();
+		// console.log('_______', this._animatingZoom, Date.now() - window.startTest, this.project(c, z), this.getZoomScale(z, 1), ev.type, ev)
+			L.DomUtil.setTransform(this._proxy, this.project(c, z), this.getZoomScale(z, 1));
+		}, this);
+
+		this._on('unload', this._destroyAnimProxy, this);
+	};
+	L.Map.prototype._animateZoom = function (center, zoom, startAnim, noUpdate) {
+		if (!this._mapPane) { return; }
+
+		if (startAnim) {
+			this._animatingZoom = true;
+
+			// remember what center/zoom to set after animation
+			this._animateToCenter = center;
+			this._animateToZoom = zoom;
+
+			L.DomUtil.addClass(this._mapPane, 'leaflet-zoom-anim');
+		}
+
+		// @event zoomanim: ZoomAnimEvent
+		// Fired on every frame of a zoom animation
+		this.fire('zoomanim', {
+			center: center,
+			zoom: zoom,
+			noUpdate: noUpdate
+		});
+
+		// Work around webkit not firing 'transitionend', see https://github.com/Leaflet/Leaflet/issues/3689, 2693
+		// setTimeout(L.bind(this._onZoomTransitionEnd, this), 250);
+	};
+
+	L.Map.prototype._onZoomTransitionEnd = function () {
+		if (!this._animatingZoom) { return; }
+
+		if (this._mapPane) {
+			L.DomUtil.removeClass(this._mapPane, 'leaflet-zoom-anim');
+		}
+
+		this._animatingZoom = false;
+
+		this._move(this._animateToCenter, this._animateToZoom);
+
+		// This anim frame should prevent an obscure iOS webkit tile loading race condition.
+		L.Util.requestAnimFrame(function () {
+			this._moveEnd(true);
+		}, this);
+	};
+// function insertStyles (styles, options) {
+  // var id = options && options.id || styles
+
+  // var element = cache[id] = (cache[id] || createStyle(id))
+
+  // if ('textContent' in element) {
+    // element.textContent = styles
+  // } else {
+    // element.styleSheet.cssText = styles
+  // }
+// }
+
+// function createStyle (id) {
+  // var element = document.getElementById(id)
+
+  // if (element) return element
+
+  // element = document.createElement('style')
+  // element.setAttribute('type', 'text/css')
+
+  // document.head.appendChild(element)
+
+  // return element
+// }
+
+}
 
 // Single tile on screen with vector data
 var fetchOptions = {
@@ -29747,7 +29900,7 @@ L.gmx.loadLayers = function(layers, globalOptions) {
 };
 
 L.gmx.loadMap = function(mapID, options) {
-	if (location.search.indexOf('debug=1') !== -1) console.warn('L.gmx.loadMap:', mapID, options);
+	if (L.gmxUtil.debug) console.warn('L.gmx.loadMap:', mapID, options);
     options = L.extend({}, options);
     options.hostName = gmxAPIutils.normalizeHostname(options.hostName || DEFAULT_HOSTNAME);
     options.mapName = mapID;
