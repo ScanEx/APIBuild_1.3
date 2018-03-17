@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-3-12 09:44:03';
-var buildUUID = '6b144b23e74f43e9bfeb9f28cc12e5ad';
+var buildDate = '2018-3-17 10:53:57';
+var buildUUID = '045d1aaebdec4327809d3d495f84d343';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -32891,8 +32891,8 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
                 this._fireEvent('drawstop', this._obj.options);
             }.bind(this), {timeout: 0});
         } else {
-			var svgContainer = this._map._pathRoot || this._map._renderer._container;
-			if (svgContainer.getAttribute('pointer-events') !== 'visible') {
+			var svgContainer = this._map._pathRoot || (this._map._renderer && this._map._renderer._container);
+			if (svgContainer && svgContainer.getAttribute('pointer-events') !== 'visible') {
 				svgContainer.setAttribute('pointer-events', 'visible');
 			}
         }
@@ -33128,6 +33128,15 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
         return coords;
     },
 
+    _geoJsonToLayer: function (geoJson) {
+		return L.geoJson(geoJson).getLayers()[0];
+    },
+
+    setGeoJSON: function (geoJson) {
+		this._initialize(this._parent, geoJson);
+        return this;
+    },
+
     toGeoJSON: function () {
         return this._toGeoJSON(true);
     },
@@ -33359,8 +33368,34 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
 				arr = obj.getLayers ? L.GmxDrawing.utils._getLastObject(obj).getLayers() : [obj];
 			} else {
 				arr = obj.getLayers ? L.GmxDrawing.utils._getLastObject(obj) : [obj];
-				if (this.options.type === 'MultiPolygon') {
-					arr = (obj.getLayers ? obj.getLayers()[0] : obj).getLatLngs().map(function(it) { return {_latlngs: it.shift(), _holes: it}; });
+				if (obj.type && obj.coordinates) {
+					var type = obj.type;
+					obj = this._geoJsonToLayer(obj);
+					if (type === 'Polygon') {
+						var it1 = obj.getLatLngs();
+						arr = [{_latlngs: it1.shift(), _holes: it1}];
+					} else if (type === 'MultiPolygon') {
+						arr = obj.getLatLngs().map(function(it) { return {_latlngs: it.shift(), _holes: it}; });
+					} else if (type === 'LineString') {
+						arr = [{_latlngs: obj.getLatLngs()}];
+					} else if (type === 'MultiLineString') {
+						arr = obj.getLatLngs().map(function(it) { return {_latlngs: it}; });
+					} else if (type === 'Point') {
+						this._obj = new L.Marker(obj.getLatLng(), {draggable: true});
+						this._setMarker(this._obj);
+						return;
+					} else if (type === 'MultiPoint') {
+						obj.getLayers()
+							.forEach(function(it) {
+								this._setMarker(new L.Marker(it.getLatLng(), {draggable: true}));
+							}.bind(this));
+						return;
+					}
+
+				} else if (this.options.type === 'MultiPolygon') {
+					arr = (obj.getLayers ? obj.getLayers()[0] : obj)
+						.getLatLngs()
+						.map(function(it) { return {_latlngs: it.shift(), _holes: it}; });
 				}
 			}
             for (var i = 0, len = arr.length; i < len; i++) {
@@ -34930,12 +34965,38 @@ L.ImageTransform = L.ImageOverlay.extend({
         var coordsArr = [[clipLatLngs]];
 		if (!L.Util.isArray(clipLatLngs)) {
 			this._clipFormat = 'geoJson';
+			this._clipType = clipLatLngs.type;
 			coordsArr = clipLatLngs.coordinates;
-			if (clipLatLngs.type.toLowerCase() === 'polygon') {
+			if (this._clipType.toLowerCase() === 'polygon') {
 				coordsArr = [coordsArr];
 			}
 		}
 		this.setClipPixels(this._coordsPixels(coordsArr, true));
+    },
+
+    getClip: function() {
+		if (this._clipFormat === 'geoJson') {
+			var coords = this._coordsPixels(this._pixelClipPoints);
+ 			if (this._clipType.toLowerCase() === 'polygon') {
+				coords = coords[0];
+			}
+           return {
+				type: this._clipType,
+				coordinates: coords
+			};
+		}
+		var arr = this.options.clip.coordinates,
+			res = [];
+
+		for (var i = 0, len = arr.length; i < len; i++) {
+			for (var j = 0, len1 = arr[i].length; j < len1; j++) {
+				for (var p = 0, len2 = arr[i][j].length; p < len2; p++) {
+					var latlng = arr[i][j][p];
+					res.push([latlng[1], latlng[0]]);
+				}
+			}
+		}
+		return res;
     },
 
     setClipPixels: function(pixelClipPoints) {
@@ -34951,24 +35012,6 @@ L.ImageTransform = L.ImageOverlay.extend({
 
     getAnchors: function() {
         return this._anchors;
-    },
-
-    getClip: function() {
-		if (this._clipFormat === 'geoJson') {
-			return this.options.clip;
-		}
-		var arr = this.options.clip.coordinates,
-			res = [];
-
-		for (var i = 0, len = arr.length; i < len; i++) {
-			for (var j = 0, len1 = arr[i].length; j < len1; j++) {
-				for (var p = 0, len2 = arr[i][j].length; p < len2; p++) {
-					var latlng = arr[i][j][p];
-					res.push([latlng[1], latlng[0]]);
-				}
-			}
-		}
-		return res;
     },
 
     _imgLoaded: false,
@@ -35098,11 +35141,7 @@ L.ImageTransform = L.ImageOverlay.extend({
         imgNode.style[L.DomUtil.TRANSFORM] = this._getMatrix3dCSS(this._matrix3d);
         if (this.options.clip) {
             if (this._pixelClipPoints) {
-                this.options.clip = {
-					type: 'MultiPolygon',
-					coordinates: this._coordsPixels(this._pixelClipPoints)
-				};
-                this._drawCanvas();
+               this._drawCanvas();
             } else {
                 this.setClip(this.options.clip);
             }
@@ -35125,7 +35164,7 @@ L.ImageTransform = L.ImageOverlay.extend({
 						pixel = L.ImageTransform.Utils.project(this._matrix3dInverse, mp.x - topLeft.x, mp.y - topLeft.y);
 						arr.push(L.point(pixel[0], pixel[1]));
 					} else {
-						pixel = ring[i];
+						pixel = ring[p];
 						tp = L.ImageTransform.Utils.project(this._matrix3d, pixel.x, pixel.y);
 						mp = this._map.layerPointToLatLng(L.point(tp[0] + topLeft.x, tp[1] + topLeft.y));
 						arr.push([mp.lng, mp.lat]);

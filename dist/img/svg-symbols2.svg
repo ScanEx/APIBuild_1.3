@@ -48,6 +48,9 @@
 		V13.6z M9.4,9.4H6.6V6.6h2.8V9.4z M9.4,5.2H6.6V2.4h2.8V5.2z M13.6,13.6h-2.8v-2.8h2.8V13.6z M13.6,9.4h-2.8V6.6h2.8V9.4z
 		 M13.6,5.2h-2.8V2.4h2.8V5.2z"/> </g> 
     </symbol>
+    <symbol id="m-hide-off" viewbox="0 0 16 16">
+        <g> <path d="M4.5,1h1.8v4.4c0,0.5-0.4,0.9-0.9,0.9H1V4.5h3.5V1z"/> <path d="M9.8,1h1.8v3.5H15v1.8h-4.4c-0.5,0-0.8-0.4-0.8-0.9V1z"/> <path d="M10.7,9.8H15v1.8h-3.5V15H9.8v-4.4C9.8,10.1,10.1,9.8,10.7,9.8z"/> <path d="M1,9.8h4.4c0.5,0,0.9,0.3,0.9,0.9V15H4.5v-3.5H1V9.8z"/> </g> 
+    </symbol>
     <symbol id="m-hide" viewbox="0 0 16 16">
         <g> <path d="M2.8,6.3H1V1.9C1,1.4,1.4,1,1.9,1h4.4v1.8H2.8V6.3z"/> <path d="M15,6.3h-1.8V2.8H9.8V1h4.4C14.7,1,15,1.4,15,1.9V6.3z"/> <path d="M14.1,15H9.8v-1.8h3.5V9.8H15v4.4C15,14.7,14.7,15,14.1,15z"/> <path d="M6.3,15H1.9C1.4,15,1,14.7,1,14.1V9.8h1.8v3.5h3.5V15z"/> </g> 
     </symbol>
@@ -104,6 +107,9 @@
     </symbol>
     <symbol id="m-zoom-out" viewbox="0 0 16 16">
         <rect x="3" y="7" width="10" height="2"/> 
+    </symbol>
+    <symbol id="s-forest-plugin" viewbox="0 0 16 16">
+      <title>s-forest-plugin</title><path d="M14.13,12.38l-3.5-5.25h2.63L8,1,2.75,7.13H5.38l-3.5,5.25H7.13v1.75a.88.88,0,0,0,1.75,0V12.38Z"/>
     </symbol>
     <symbol id="s-tree" viewbox="0 0 16 16">
         <g> <polygon points="8,12.6 2.8,9.1 1,10.3 8,15 15,10.3 13.2,9.1 	"/> <polygon points="1,5.7 8,1 15,5.7 8,10.3 	"/> </g> 
