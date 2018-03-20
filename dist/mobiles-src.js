@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-3-18 13:07:52';
-var buildUUID = 'a3c1608aff3e4c3eaceb2ef478758630';
+var buildDate = '2018-3-20 14:30:45';
+var buildUUID = 'a7479426f6b648988f3c6045981316a5';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22693,6 +22693,7 @@ var ext = L.extend({
     options: {
 		tilesCRS: L.CRS.EPSG3395,
         openPopups: [],
+		className: 'vector-tiles',
         minZoom: 1,
         zIndexOffset: 0,
         isGeneralized: true,
@@ -22764,7 +22765,10 @@ var ext = L.extend({
 	_initContainer: function () {
 		if (this._container) { return; }
 
-		this._container = L.DomUtil.create('div', 'leaflet-layer ' + (this.options.className || ''));
+		var classNames = ['leaflet-layer'];
+		if (this.options.className) { classNames.push(this.options.className); }
+
+		this._container = L.DomUtil.create('div', classNames.join(' '));
 		if (this.options.clickable === false) {
 			this._container.style.pointerEvents = 'none';
 		}
@@ -22779,9 +22783,9 @@ var ext = L.extend({
     },
 
 	_onmoveend: function () {
-		if (L.gmxUtil.debug) {
-			console.log('_onmoveend ', this._tileZoom, this._loading, this._noTilesToLoad(), this._tileZoom);
-		}
+		// if (L.gmxUtil.debug) {
+			// console.log('_onmoveend ', this._tileZoom, this._loading, this._noTilesToLoad(), this._tileZoom, Date.now());
+		// }
 		var zoom = this._tileZoom,
 			key, tile;
 
@@ -22840,13 +22844,16 @@ var ext = L.extend({
 				// console.log('zoomstart', this._map._zoom, this._gmx.layerID, arguments);
 				// this._gmx.zoomstart = true;
 				// this._removeScreenObservers();
-			// },
+			// }
+			//,
 			// zoomanim: function(ev) {
 				// this._setZoomTransforms(ev.center, ev.zoom);
 				// this._gmx.zoomstart = true;
 			// },
 			// zoomend: function() {
-				// this._gmx.zoomstart = false;
+				//this._gmx.zoomstart = false;
+				// this._drawDoneObjectsCount = this._drawnObjectsCount;
+				// this._drawnObjectsCount = 0;
 			// }
 		// });
         var gmx = this._gmx;
@@ -22903,10 +22910,10 @@ var ext = L.extend({
 		//if (gmx.properties.type === 'Vector') {
 			events.moveend = function() {
 				// window.startTest = Date.now();
-				// if (this._onmoveendTimer) { clearTimeout(this._onmoveendTimer); }
-				// this._onmoveendTimer = setTimeout(L.bind(this._onmoveend, this), 5750);
-				if (this._onmoveendTimer) { cancelIdleCallback(this._onmoveendTimer); }
-				this._onmoveendTimer = requestIdleCallback(L.bind(this._onmoveend, this), {timeout: 25});
+				if (this._onmoveendTimer) { clearTimeout(this._onmoveendTimer); }
+				this._onmoveendTimer = setTimeout(L.bind(this._onmoveend, this), 0);
+				// if (this._onmoveendTimer) { cancelIdleCallback(this._onmoveendTimer); }
+				// this._onmoveendTimer = requestIdleCallback(L.bind(this._onmoveend, this), {timeout: 25});
 			};
 			if (L.gmxUtil.debug) {
 				// owner.load = function(ev) {
@@ -22957,6 +22964,7 @@ var ext = L.extend({
 		this._updateShiftY(map.getZoom());
         L.GridLayer.prototype.beforeAdd.call(this, map);
 		this._map = map;
+		this._drawnObjectsCount = 0;
     },
 
     onAdd: function(map) {
@@ -22988,6 +22996,7 @@ var ext = L.extend({
 					this.off(events.owner, this);
 				}, this);
 
+				L.gmx._zoomLevelsCache = {};
 				this._invalidateAll();
 				this._resetView();
 				gmx.dataManager.fire('moveend');
@@ -23410,16 +23419,8 @@ var ext = L.extend({
     },
 
     appendTileToContainer: function (tileLink) {		// call from screenTile
-		if (this._tileZoom === tileLink.coords.z) {
-			var tilePos = this._getTilePos(tileLink.coords),
-				tile = tileLink.el,
-				levelEl = this._levels[tileLink.coords.z],
-				cont = levelEl ? levelEl.el : this._tileContainer;
-
-			if (cont) {
-				cont.appendChild(tile);
-				L.DomUtil.setPosition(tile, tilePos, L.Browser.chrome || L.Browser.android23);
-			}
+		if (this._level && this._level.zoom === tileLink.coords.z && this._level.el !== tileLink.el.parentNode) {
+			this._level.el.appendChild(tileLink.el);
 		}
     },
 
@@ -23779,6 +23780,7 @@ var ext = L.extend({
 				var filters = gmx.dataManager.getViewFilters('screen', gmx.layerID);
                 var done = function() {
 					if (tileElem.count) {
+						myLayer._drawnObjectsCount += tileElem.count;
 						myLayer.appendTileToContainer(tileElem);
 					}
 					myLayer._tileReady(coords, null, tileElem.el);
@@ -24093,11 +24095,60 @@ L.Map.addInitHook(function () {
 	this.options.skipTiles = this.options.skipTiles || 'All';
 
 	L.gmx._zoomLevelsCache = {};
-	this.on('zoomstart', function() {
-		// console.log('map zoomstart', this._zoom, arguments);
+	L.gmx._zoomAnimCache = {};
+	this.on('beforezoomanim', function(ev) {
 		L.gmx._zoomLevelsCache = {};
+		L.gmx._zoomAnimCache = {
+			zoom: ev.zoom,
+			center: ev.center
+		};
+		var delta = ev.zoom - this._zoom,
+			cnt = 0,
+			maxZoomAnimGmxLayers = this.options.maxZoomAnimGmxLayers || 5;
+		for (var key in this._layers) {
+			var it = this._layers[key];
+			if (it._map && it instanceof L.gmx.VectorLayer) {
+				var func = L.DomUtil.removeClass;
+				if (it._drawnObjectsCount === 0 || (delta > 0 && cnt > maxZoomAnimGmxLayers)) {func = L.DomUtil.addClass;}
+				else {cnt++;}
+				// console.log('__', delta, this._zoom, ev.zoom, it._drawDoneObjectsCount);
+				func(it._container, 'leaflet-zoom-hide');
+				it._drawnObjectsCount = 0;
+
+			}
+		}
+		// console.log('map beforezoomanim', delta, this._zoom, ev.zoom, ev);
 	}, this);
 });
+L.Map.prototype._animateZoom = function (center, zoom, startAnim, noUpdate) {
+	if (!this._mapPane) { return; }
+
+	if (startAnim) {
+		this._animatingZoom = true;
+
+		// remember what center/zoom to set after animation
+		this._animateToCenter = center;
+		this._animateToZoom = zoom;
+		this.fire('beforezoomanim', {
+			center: center,
+			zoom: zoom,
+			noUpdate: noUpdate
+		});
+
+		L.DomUtil.addClass(this._mapPane, 'leaflet-zoom-anim');
+	}
+
+	// @event zoomanim: ZoomAnimEvent
+	// Fired on every frame of a zoom animation
+	this.fire('zoomanim', {
+		center: center,
+		zoom: zoom,
+		noUpdate: noUpdate
+	});
+
+	// Work around webkit not firing 'transitionend', see https://github.com/Leaflet/Leaflet/issues/3689, 2693
+	setTimeout(L.bind(this._onZoomTransitionEnd, this), 250);
+};
 
 if (L.gmxUtil.debug) {
 	L.Map.prototype._catchTransitionEnd = function (e) {
@@ -28915,6 +28966,7 @@ L.gmx.ExternalLayer = L.Class.extend({
                 filters: ['clipFilter', 'styleFilter', 'userFilter', 'clipPointsFilter']
             },
             spiderfyOnMaxZoom: true,
+			animate: false,
             minZoom: 1,
             maxZoom: 6
         },
