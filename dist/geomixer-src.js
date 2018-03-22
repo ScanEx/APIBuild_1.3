@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-3-22 15:45:33';
-var buildUUID = 'c488eed83cf445909bba12b6ea0716aa';
+var buildDate = '2018-3-22 17:38:52';
+var buildUUID = '16e892d16333462b8e904d97e04a75d9';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22810,6 +22810,13 @@ var VectorGridLayer = L.GridLayer.extend({
 */
 		}
 	},
+	_noTilesToLoad: function () {
+		var zoom = this._tileZoom || this._map.getZoom();
+		for (var key in this._tiles) {
+			if (this._tiles[key].coords.z === zoom && !this._tiles[key].loaded) { return false; }
+		}
+		return true;
+	},
 	_updateLevels: function () {		// Add by Geomixer (coords.z is Number however _levels keys is String)
 
 		var zoom = this._tileZoom,
@@ -23256,12 +23263,12 @@ var ext = L.extend({
 				this._clearOldLevels();
 			},
 
-			// tileloadstart: function(ev) {				// тайл (ev.coords) загружается
-				// var key = ev.key || this._tileCoordsToKey(ev.coords),
-					// tLink = this._tiles[key];
+			tileloadstart: function(ev) {				// тайл (ev.coords) загружается
+				var key = ev.key || this._tileCoordsToKey(ev.coords),
+					tLink = this._tiles[key];
 
-				// tLink.loaded = 0;
-			// },
+				tLink.loaded = 0;
+			},
 			stylechange: function() {
 				// var gmx = this._gmx;
 				if (!gmx.balloonEnable && this._popup) {
@@ -24790,6 +24797,9 @@ ScreenVectorTile.prototype = {
     },
 
     destructor: function () {
+		if (this.drawReject) {
+			this.drawReject('отмена');
+		}
 		if (this._preRenderPromise) {
 			this._preRenderPromise.reject();        // cancel preRenderHooks chain if exists
 		}
@@ -24819,6 +24829,7 @@ ScreenVectorTile.prototype = {
     drawTile: function (data) {
 		this.destructor();
 		return new Promise(function(resolve, reject) {
+			this.drawReject = reject;
 			var geoItems = this._chkItems(data);
 			var result = function() {
 				resolve({count: geoItems.length});
@@ -24916,8 +24927,8 @@ ScreenVectorTile.prototype = {
 			} else {
 				resolve();
 			}
-		}.bind(this)).catch(function(e) {
-			console.warn('catch1:', e);
+		}.bind(this)).catch(function() {
+			//console.warn('catch1:', e);
 		});
     },
 
