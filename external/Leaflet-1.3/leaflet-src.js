@@ -4125,7 +4125,7 @@ var Map = Evented.extend({
 		// @event movestart: Event
 		// Fired when the view of the map starts changing (e.g. user starts dragging the map).
 		if (zoomChanged) {
-			this.fire('zoomstart');
+			this.fire('zoomstart', {center: center, zoom: zoom});
 		}
 		if (!noMoveStart) {
 			this.fire('movestart');
