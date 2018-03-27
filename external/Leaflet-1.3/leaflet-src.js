@@ -4119,7 +4119,7 @@ var Map = Evented.extend({
 		}
 	},
 
-	_moveStart: function (zoomChanged, noMoveStart) {
+	_moveStart: function (zoomChanged, noMoveStart, center, zoom) {
 		// @event zoomstart: Event
 		// Fired when the map zoom is about to change (e.g. before zoom animation).
 		// @event movestart: Event
@@ -4563,7 +4563,7 @@ var Map = Evented.extend({
 
 		requestAnimFrame(function () {
 			this
-			    ._moveStart(true, false)
+			    ._moveStart(true, false, center, zoom)
 			    ._animateZoom(center, zoom, true);
 		}, this);
 

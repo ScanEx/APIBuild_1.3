@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-3-27 14:15:53';
-var buildUUID = '9f0adc896a7543d89217218e8e50896d';
+var buildDate = '2018-3-27 16:37:14';
+var buildUUID = '82ecdf86588441749cae5896d780c63d';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -5751,7 +5751,7 @@ var Map = Evented.extend({
 		}
 	},
 
-	_moveStart: function (zoomChanged, noMoveStart) {
+	_moveStart: function (zoomChanged, noMoveStart, center, zoom) {
 		// @event zoomstart: Event
 		// Fired when the map zoom is about to change (e.g. before zoom animation).
 		// @event movestart: Event
@@ -6195,7 +6195,7 @@ var Map = Evented.extend({
 
 		requestAnimFrame(function () {
 			this
-			    ._moveStart(true, false)
+			    ._moveStart(true, false, center, zoom)
 			    ._animateZoom(center, zoom, true);
 		}, this);
 
@@ -23104,6 +23104,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 						this._map._labelsLayer.remove(this);
 					}
 					this.redraw();
+					this._onmoveend();
 				}
 			},
 			versionchange: this._onVersionChange
@@ -23336,6 +23337,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
                 // this._clearAllSubscriptions();
                 this._gmx.dataManager.enableGeneralization();
                 this.redraw();
+				this._onmoveend();
             }
         }
     },
@@ -23347,6 +23349,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
                 // this._clearAllSubscriptions();
                 this._gmx.dataManager.disableGeneralization();
                 this.redraw();
+				this._onmoveend();
             }
         }
     },
