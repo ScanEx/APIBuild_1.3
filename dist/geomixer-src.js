@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-3-27 16:37:14';
-var buildUUID = '82ecdf86588441749cae5896d780c63d';
+var buildDate = '2018-3-28 11:24:39';
+var buildUUID = '77349e3b356d45abb1bf0cf8d72710ca';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -29895,10 +29895,12 @@ L.Map.addInitHook(function() {
               ) {
                 L.DomUtil.addClass(control._container, hiddenClass);
             }
+			map.fire('gmxcontroladd', {id: id, control: control});
             return this;
         },
         remove: function(control) {
             delete this._controls[control.options.id];
+			map.fire('gmxcontrolremove', {id: control.options.id, control: control});
             return this;
         },
         get: function(id) {
