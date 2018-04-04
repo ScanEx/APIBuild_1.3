@@ -73,6 +73,11 @@ var apiFiles = [
 	{
 		key: 'Leaflet.heat',
 		js: ['dist/leaflet-heat.js']
+	},
+	{
+		key: 'Leaflet.rastersBgTiles',
+		js: ['src/L.RastersBgTiles.js'],
+		css: ['src/L.RastersBgTiles.css']
 	}
 /*
 	},

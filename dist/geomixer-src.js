@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-2 09:36:19';
-var buildUUID = '73dee4227f3d4441b33ca4d5b083ee7e';
+var buildDate = '2018-4-4 14:56:02';
+var buildUUID = 'ef3d3323eef74d6ea6a1a09854114541';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -19449,7 +19449,7 @@ L.gmxUtil.createWorker(L.gmxUtil.apiLoadedFrom() + '/ImageBitmapLoader-worker.js
 			return new Promise(function(resolve, reject) {
 				attr.resolve = resolve;
 				attr.reject = reject;
-			}).catch(console.log);
+			}).catch(L.Util.falseFn);
 		}
 	};
 
@@ -19987,18 +19987,30 @@ var gmxSessionManager = {
             apiKey = typeof apiKey === 'undefined' ? this._searchScriptAPIKey() : apiKey;
             keys[serverHost] = new Promise(function(resolve, reject) {
 				if (apiKey) {
-					gmxAPIutils.requestJSONP(L.gmxUtil.protocol + '//' + serverHost + '/ApiKey.ashx',
-						{
-							WrapStyle: 'func',
-							Key: apiKey
-						}
-					).then(function(response) {
-						if (response && response.Status === 'ok') {
-							resolve(response.Result.Key);
-						} else {
-							reject();
-						}
-					}, reject);
+					var url = L.gmxUtil.protocol + '//' + serverHost + '/ApiKey.ashx?WrapStyle=None&Key=' + apiKey,
+						storeKey = function(json) {
+							if (json && json.Status === 'ok') {
+								var key = this._sessionKeysRes[serverHost] = json.Result.Key;
+								resolve(key);
+							} else {
+								reject();
+							}
+						}.bind(this);
+					fetch(url, {mode: 'cors'})
+					.then(function(resp) { return resp.json(); })
+					.then(storeKey);
+					// gmxAPIutils.requestJSONP(L.gmxUtil.protocol + '//' + serverHost + '/ApiKey.ashx',
+						// {
+							// WrapStyle: 'func',
+							// Key: apiKey
+						// }
+					// ).then(function(response) {
+						// if (response && response.Status === 'ok') {
+							// resolve(response.Result.Key);
+						// } else {
+							// reject();
+						// }
+					// }, reject);
 				} else {
 					resolve('');
 				}
@@ -20011,7 +20023,11 @@ var gmxSessionManager = {
     getSessionKey: function(serverHost) {
 		return this._sessionKeys[serverHost];
     },
-    _sessionKeys: {} //deferred for each host
+    getSessionKeyRes: function(serverHost) {
+		return this._sessionKeysRes[serverHost];
+    },
+    _sessionKeysRes: {}, 	//key for each host
+    _sessionKeys: {} 		//promise for each host
 };
 L.gmx = L.gmx || {};
 L.gmx.gmxSessionManager = gmxSessionManager;
@@ -21716,10 +21732,10 @@ var DataManager = L.Class.extend({
         this.temporalColumnType = tileAttributes.tileAttributeTypes[this.options.TemporalColumnName];
 
         var hostName = this.options.hostName,
-            sessionKey = this.options.sessionKey;
+            sessionKey = this.options.sessionKey || '';
 
         // if (!sessionKey) {
-            // sessionKey = L.gmx.gmxSessionManager.getSessionKey(hostName);
+            // sessionKey = L.gmx.gmxSessionManager.getSessionKeyRes(hostName);
         // }
         this.tileSenderPrefix = L.gmxUtil.protocol + '//' + hostName + '/' +
             'TileSender.ashx?WrapStyle=None' +
@@ -22719,93 +22735,6 @@ L.gmx = L.gmx || {};
 L.gmx.DataManager = DataManager;
 
 
-/*
-L.extend(L.GridLayer.prototype, {
-	_animateZoom: function (e) {
-		this.options.updateWhenZooming = false;
-		this._setView(e.center, e.zoom, true, true);
-//	console.log('_setView _animateZoom', e.zoom, e.center, Date.now() - window.startTest, this)
-	},
-
-	_setZoomTransform: function (level, center, zoom) {	// Add by Geomixer (for cache levels transform)
-		var key = level.zoom + '_' + zoom,
-			cache = L.gmx._zoomLevelsCache[key] || {},
-			translate = cache.translate,
-			scale = cache.scale;
-		if (!translate) {
-			scale = this._map.getZoomScale(zoom, level.zoom);
-			translate = level.origin.multiplyBy(scale).subtract(this._map._getNewPixelOrigin(center, zoom))._round();
-			L.gmx._zoomLevelsCache[key] = {translate: translate, scale: scale};
-			// console.log('_setZoomTransform', key, zoom, translate, scale);
-		}
-		if (L.Browser.any3d) {
-			L.DomUtil.setTransform(level.el, translate, scale);
-		} else {
-			L.DomUtil.setPosition(level.el, translate);
-		}
-	},
-	_clearOldLevels: function (z) {
-		if (this._map) {
-// console.log('_clearOldLevels', z, Date.now() - window.startTest, this)
-			z = z || this._map.getZoom();
-			for (var key in this._levels) {
-				var el = this._levels[key].el,
-					zz = Number(key);
-				if (zz !== z) {
-					L.DomUtil.remove(el);
-					this._removeTilesAtZoom(zz);
-					this._onRemoveLevel(zz);
-					delete this._levels[key];
-				}
-			}
-		}
-	},
-	_noTilesToLoad: function () {
-		var zoom = this._tileZoom || this._map.getZoom();
-		for (var key in this._tiles) {
-			if (this._tiles[key].coords.z === zoom && !this._tiles[key].loaded) { return false; }
-		}
-		return true;
-	},
-
-	_tileReady: function (coords, err, tile) {
-		if (!this._map) { return; }				// Add by Geomixer (нет возможности отключения fade-anim)
-// if (this._map._animatingZoom)
-// console.log('_tileReady _animateZoom', coords, err, tile, Date.now() - window.startTest, this)
-
-		if (err) {
-			// @event tileerror: TileErrorEvent
-			// Fired when there is an error loading a tile.
-			this.fire('tileerror', {
-				error: err,
-				tile: tile,
-				coords: coords
-			});
-		}
-
-		var key = this._tileCoordsToKey(coords);
-
-		tile = this._tiles[key];
-		if (!tile) { return; }
-
-		tile.loaded = +new Date();
-
-		if (!err) {
-			L.DomUtil.addClass(tile.el, 'leaflet-tile-loaded');
-			this.fire('tileload', {		// @event tileload: TileEvent // Fired when a tile loads.
-				tile: tile.el,
-				coords: coords
-			});
-		}
-
-		if (this._noTilesToLoad()) {
-			this._loading = false;
-			this._clearOldLevels(this._tileZoom);
-			this.fire('load');			// @event load: Event // Fired when the grid layer loaded all visible tiles.
-		}
-	}
-});
-*/
 var VectorGridLayer = L.GridLayer.extend({
 	_animateZoom: function (e) {
 		this.options.updateWhenZooming = false;
@@ -23114,6 +23043,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
     },
 
 	_chkOldLevels: function () {
+		if (!this._map) {return;}
 		var zoom = this._map._zoom,
 			key, tile;
 
@@ -23134,7 +23064,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
     },
 
 	_chkTiles: function () {
-		//return;
+		if (!this._map) {return;}
 		// console.log('_onmoveend ', this._tileZoom, this._loading, this._noTilesToLoad(), this._tileZoom, Date.now());
 		var zoom = this._tileZoom || this._map._zoom,
 			key, tile;
@@ -23399,6 +23329,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 			// ph.properties.srs = gmx.srs = Number(gmx.rawProperties.RasterSRS);
 		}
 
+        ph.properties.sessionKey = ph.properties.sessionKey || gmx.sessionKey || '';
         ph.properties.needBbox = gmx.needBbox;
         ph.properties.isGeneralized = this.options.isGeneralized;
         ph.properties.isFlatten = this.options.isFlatten;
@@ -24262,6 +24193,10 @@ ScreenVectorTile.prototype = {
 						} else {
 							resolve({gtp: gtp});
 						}
+					},
+					skipUrl = function(res) {
+						_this.layer.fire('bitmap', {id: item.id, loaded: false, url: rUrl, result: res});
+						tryHigherLevelTile(rUrl);
 					};
 
 					if (gmx.badTiles[rUrl] || (gmx.maxNativeZoom && gmx.maxNativeZoom < gtp.z)) {
@@ -24272,21 +24207,26 @@ ScreenVectorTile.prototype = {
 					if (L.gmx.getBitmap) {
 						L.gmx.getBitmap(rUrl, fetchOptions).then(
 							function(res) {
-								var imageObj = res.imageBitmap,
-									canvas_ = document.createElement('canvas');
-								canvas_.width = imageObj.width;
-								canvas_.height = imageObj.height;
-								canvas_.getContext('2d').drawImage(imageObj, 0, 0, canvas_.width, canvas_.width);
-								if (gmx.rastersCache) {
-									gmx.rastersCache[rUrl] = canvas_;
+								if (res) {
+									var imageObj = res.imageBitmap,
+										canvas_ = document.createElement('canvas');
+									canvas_.width = imageObj.width;
+									canvas_.height = imageObj.height;
+									canvas_.getContext('2d').drawImage(imageObj, 0, 0, canvas_.width, canvas_.width);
+									if (gmx.rastersCache) {
+										gmx.rastersCache[rUrl] = canvas_;
+									}
+									resolve({gtp: gtp, image: canvas_});
+									_this.layer.fire('bitmap', {id: item.id, loaded: true, url: rUrl, result: res});
+								} else {
+									skipUrl();
 								}
-								resolve({gtp: gtp, image: canvas_});
-								_this.layer.fire('bitmap', {id: item.id, loaded: true, url: rUrl, result: res});
 							},
-							function(res) {
-								_this.layer.fire('bitmap', {id: item.id, loaded: false, url: rUrl, result: res});
-								tryHigherLevelTile(rUrl);
-							}
+							skipUrl
+							// function(res) {
+								// _this.layer.fire('bitmap', {id: item.id, loaded: false, url: rUrl, result: res});
+								// tryHigherLevelTile(rUrl);
+							// }
 						)
 						.catch(L.Util.falseFn);
 					} else {
@@ -24333,6 +24273,7 @@ ScreenVectorTile.prototype = {
         var source = attr.sourceTilePoint || attr.destinationTilePoint,
             info = {
                 geoItem: attr.geoItem,
+				zKey: attr.zKey,
                 destination: {
                     z: attr.destinationTilePoint.z,
                     x: attr.destinationTilePoint.x,
@@ -24359,6 +24300,7 @@ ScreenVectorTile.prototype = {
 			var ptx = res.getContext('2d');
 			ptx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
 		}
+		return res;
     },
 
     // get pixels parameters for shifted object
@@ -24512,6 +24454,7 @@ ScreenVectorTile.prototype = {
 						var info = {
 								geoItem: geo,
 								image: img,
+								zKey: _this.zKey,
 								destinationTilePoint: tilePoint,
 								sourceTilePoint: gtp,
 								sx: 0, sy: 0, sw: 256, sh: 256,
@@ -24570,11 +24513,15 @@ ScreenVectorTile.prototype = {
 							if (hookResult) {
 								if (hookResult.then) {
 									hookResult.then(then);
+								} else {
+									resCanvas = hookResult;
+									then();
 								}
 							} else if (hookResult === null) {
 								item.skipRasters = true;
 								skipRasterFunc();
 							} else {
+								resCanvas = img;
 								then();
 							}
 						}
@@ -40374,6 +40321,280 @@ return L.GeometryUtil;
  https://github.com/Leaflet/Leaflet.heat
 */
 L.HeatLayer=(L.Layer?L.Layer:L.Class).extend({initialize:function(t,i){this._latlngs=t,L.setOptions(this,i)},setLatLngs:function(t){return this._latlngs=t,this.redraw()},addLatLng:function(t){return this._latlngs.push(t),this.redraw()},setOptions:function(t){return L.setOptions(this,t),this._heat&&this._updateOptions(),this.redraw()},redraw:function(){return!this._heat||this._frame||this._map._animating||(this._frame=L.Util.requestAnimFrame(this._redraw,this)),this},onAdd:function(t){this._map=t,this._canvas||this._initCanvas(),t._panes.overlayPane.appendChild(this._canvas),t.on("moveend",this._reset,this),t.options.zoomAnimation&&L.Browser.any3d&&t.on("zoomanim",this._animateZoom,this),this._reset()},onRemove:function(t){t.getPanes().overlayPane.removeChild(this._canvas),t.off("moveend",this._reset,this),t.options.zoomAnimation&&t.off("zoomanim",this._animateZoom,this)},addTo:function(t){return t.addLayer(this),this},_initCanvas:function(){var t=this._canvas=L.DomUtil.create("canvas","leaflet-heatmap-layer leaflet-layer"),i=L.DomUtil.testProp(["transformOrigin","WebkitTransformOrigin","msTransformOrigin"]);t.style[i]="50% 50%";var a=this._map.getSize();t.width=a.x,t.height=a.y;var s=this._map.options.zoomAnimation&&L.Browser.any3d;L.DomUtil.addClass(t,"leaflet-zoom-"+(s?"animated":"hide")),this._heat=simpleheat(t),this._updateOptions()},_updateOptions:function(){this._heat.radius(this.options.radius||this._heat.defaultRadius,this.options.blur),this.options.gradient&&this._heat.gradient(this.options.gradient),this.options.max&&this._heat.max(this.options.max)},_reset:function(){var t=this._map.containerPointToLayerPoint([0,0]);L.DomUtil.setPosition(this._canvas,t);var i=this._map.getSize();this._heat._width!==i.x&&(this._canvas.width=this._heat._width=i.x),this._heat._height!==i.y&&(this._canvas.height=this._heat._height=i.y),this._redraw()},_redraw:function(){var t,i,a,s,e,n,h,o,r,d=[],_=this._heat._r,l=this._map.getSize(),m=new L.Bounds(L.point([-_,-_]),l.add([_,_])),c=void 0===this.options.max?1:this.options.max,u=void 0===this.options.maxZoom?this._map.getMaxZoom():this.options.maxZoom,f=1/Math.pow(2,Math.max(0,Math.min(u-this._map.getZoom(),12))),g=_/2,p=[],v=this._map._getMapPanePos(),w=v.x%g,y=v.y%g;for(t=0,i=this._latlngs.length;i>t;t++)if(a=this._map.latLngToContainerPoint(this._latlngs[t]),m.contains(a)){e=Math.floor((a.x-w)/g)+2,n=Math.floor((a.y-y)/g)+2;var x=void 0!==this._latlngs[t].alt?this._latlngs[t].alt:void 0!==this._latlngs[t][2]?+this._latlngs[t][2]:1;r=x*f,p[n]=p[n]||[],s=p[n][e],s?(s[0]=(s[0]*s[2]+a.x*r)/(s[2]+r),s[1]=(s[1]*s[2]+a.y*r)/(s[2]+r),s[2]+=r):p[n][e]=[a.x,a.y,r]}for(t=0,i=p.length;i>t;t++)if(p[t])for(h=0,o=p[t].length;o>h;h++)s=p[t][h],s&&d.push([Math.round(s[0]),Math.round(s[1]),Math.min(s[2],c)]);this._heat.data(d).draw(this.options.minOpacity),this._frame=null},_animateZoom:function(t){var i=this._map.getZoomScale(t.zoom),a=this._map._getCenterOffset(t.center)._multiplyBy(-i).subtract(this._map._getMapPanePos());L.DomUtil.setTransform?L.DomUtil.setTransform(this._canvas,a,i):this._canvas.style[L.DomUtil.TRANSFORM]=L.DomUtil.getTranslateString(a)+" scale("+i+")"}}),L.heatLayer=function(t,i){return new L.HeatLayer(t,i)};
+
+L.RastersBgTiles = L.ImageOverlay.extend({
+	options: {
+		scanLayersType: 'CR'
+    },
+	initialize: function (options) { // (String, LatLngs, Object)
+		// this._url = url;
+		L.Util.setOptions(this, L.extend(this.options, options));
+		this._topLeft = L.point(0, 0);
+		this._canvas = L.DomUtil.create('canvas', 'leaflet-canvas-transform');
+
+        this._container = L.DomUtil.create('div', 'leaflet-image-layer');
+		this._container.appendChild(this._canvas);
+		this._layersBG = {};
+	},
+
+	onAdd: function (map) {
+		var pane = this.getPane();
+		pane.insertBefore(this._container, pane.firstChild);
+		map
+			.on('resize', this._onresize, this);
+			// .on('moveend', this._onmoveend, this);
+		if (this.options.interactive) {
+			L.DomUtil.addClass(this._container, 'leaflet-interactive');
+			this.addInteractiveTarget(this._container);
+		}
+		var size = map.getSize();
+		this._canvas.width = size.x; this._canvas.height = size.y;
+
+		L.DomUtil.addClass(this._container, 'leaflet-zoom-' + (map.options.zoomAnimation && L.Browser.any3d ? 'animated' : 'hide'));
+		if (this.options.className) { L.DomUtil.addClass(this._container, this.options.className); }
+		if (this.options.zIndex) { this._updateZIndex(); }
+		this._repaint();
+	},
+
+	onRemove: function (map) {
+		for(var layerID in this._layersBG) {
+			var it = this._layersBG[layerID];
+			this._removeLayerBG(it.layer);
+		}
+
+		map
+			.off('resize', this._onresize, this);
+			// .off('moveend', this._onmoveend, this);
+		L.DomUtil.remove(this._container);
+		if (this.options.interactive) { this.removeInteractiveTarget(this._container); }
+	},
+
+    _onmoveend: function () {
+		this._topLeft = this._map.containerPointToLayerPoint([0, 0]);
+		L.DomUtil.setTransform(this._container, this._topLeft, 1);
+	},
+	_onresize: function () {
+		var map = this._map,
+			size = map.getSize();
+
+		this._canvas.width = size.x; this._canvas.height = size.y;
+		this._onmoveend();
+	},
+
+	_reset: function () {
+		//console.log('_reset ____', this._layersBG);
+    },
+/*
+    _onImageError: function () {
+console.log('_onImageError ____', arguments);
+        this.fire('error');
+    },
+
+    _onImageLoad: function () {
+console.log('_onImageLoad ____', arguments);
+		// if (this._imgNode.decode) {
+			// this._imgNode.decode({notifyWhen: 'paintable'})		// {firstFrameOnly: true}
+				// .then(L.bind(this._imageReady, this))
+				// .catch(function (ev) {
+					// throw new Error(ev);
+				// });
+		// }
+    },
+
+    _imageReady: function () {
+		// this._imageBitmap = this._createTexture(this._imgNode);
+		// this.setAnchors();
+		// if (this.options.clip) { this.setClip(this.options.clip) }
+		// this._redraw();
+    },
+
+	_rHook: function (dstCanvas, srcImage, sx, sy, sw, sh, dx, dy, dw, dh, info) {
+console.log('_rHook ____', info.zKey);
+		return undefined;
+    },
+*/
+	_animateZoom: function (e) {
+        var map = this._map;
+		L.DomUtil.setTransform(this._container,
+		    map._latLngBoundsToNewLayerBounds(map.getBounds(), e.zoom, e.center).min,
+			map.getZoomScale(e.zoom)
+		);
+    },
+
+	_onLoadLayer: function (ev) {
+		var it = ev.target;
+			layerID = it._gmx.layerID;
+
+		this._layersBG[layerID].loaded = true;
+		if (this._chkLoaded()) {
+			this._repaint();
+		}
+		return undefined;
+    },
+	_chkLoaded: function () {
+		var loaded = true;
+		for(var layerID in this._layersBG) {
+			var it = this._layersBG[layerID];
+			if(!it.loaded) {
+				loaded = false;
+				break;
+			}
+		}
+		//console.log('_chkLoaded ____', loaded);
+		return loaded;
+    },
+
+	_repaint: function () {
+		this._onmoveend();
+
+		var z = this._map.getZoom(),
+			originShift = this._map._pixelOrigin.add(this._topLeft),
+			tileSize = L.point(256, 256);
+
+		var arr = this._getOnMapLayers();
+		var ctx = this._canvas.getContext('2d');
+		ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+		arr.forEach(function (pt) {
+			var layerID = pt._gmx.layerID;
+			var it = this._layersBG[layerID];
+			
+			for(var zKey in it.layer._tiles) {
+				var tile = it.layer._tiles[zKey],
+					coords = tile.coords;
+				if (coords.z === z) {
+					var pos = coords.scaleBy(tileSize)._subtract(originShift);
+					ctx.drawImage(tile.el, pos.x, pos.y, 256, 256);
+// console.log('_repaint ____', layerID, tt, tile);
+				}
+			}
+		}.bind(this));
+    },
+
+	_removeLayerBG: function (it) {
+		var layerID = it._gmx.layerID;
+		if(this._layersBG[layerID]) {
+			// it.removeRasterHook();
+			it.off('load', this._onLoadLayer, this);
+			delete this._layersBG[layerID];
+		}
+    },
+
+	_addLayerBG: function (it) {
+		var layerID = it._gmx.layerID;
+		if(!this._layersBG[layerID]) {
+			//it.setRasterHook(this._rHook);
+			it.on('load', this._onLoadLayer, this);
+			this._layersBG[layerID] = {
+				tiles: {},
+				layer: it
+			};
+		}
+    },
+
+	_getOnMapLayers: function () {
+		if(this._map) {
+			var map = this._map,
+				arr = [];
+			for(var lid in map._layers) {
+				var it = map._layers[lid];
+				if(it._gmx && it._gmx.IsRasterCatalog) {
+					arr.push(it);
+					this._addLayerBG(it);
+				}
+			}
+			return arr.sort(function(a, b) {
+				var oa = a.options, ob = b.options,
+					za = (oa.zIndexOffset || 0) + (oa.zIndex || 0),
+					zb = (ob.zIndexOffset || 0) + (ob.zIndex || 0);
+				return za - zb;
+			}.bind(this));
+		}
+    },
+
+	getWebGLFiltersContainer: function (map) {
+		var container = this._webGLFilters = L.DomUtil.create('span', 'webGLFilters');
+		container.innerHTML = '\
+<span class="inputCont">\
+<input type="checkbox" class="checkboxFilters"> - фильтр\
+</span>\
+<span class="gmxHidden filtersCont">\
+	<select class="filters">\
+		<option disabled="true">---- Adjust -----</option>\
+		<option>Brightness / Contrast</option>\
+		<option>Hue / Saturation</option>\
+		<option>Vibrance</option>\
+		<option>Denoise</option>\
+		<option>Unsharp Mask</option>\
+		<option>Noise</option>\
+		<option>Sepia</option>\
+		<option>Vignette</option>\
+		<option disabled="true">---- Blur -----</option>\
+		<option>Zoom Blur</option>\
+		<option>Triangle Blur</option>\
+		<option>Tilt Shift</option>\
+		<option>Lens Blur</option>\
+		<option disabled="true">---- Warp -----</option>\
+		<option>Swirl</option>\
+		<option>Bulge / Pinch</option>\
+		<option disabled="true">---- Fun -----</option>\
+		<option>Ink</option>\
+		<option>Edge Work</option>\
+		<option>Hexagonal Pixelate</option>\
+		<option>Dot Screen</option>\
+		<option>Color Halftone</option>\
+	</select>\
+</span>\
+';
+		var	checkboxFilters = container.getElementsByClassName('checkboxFilters')[0],
+			filtersCont = container.getElementsByClassName('filtersCont')[0];
+
+		var stop = L.DomEvent.stopPropagation;
+		L.DomEvent
+			.on(container, 'contextmenu', stop)
+			.on(container, 'touchstart', stop)
+			.on(container, 'mousemove', stop)
+			.on(container, 'mousedown', stop)
+			.on(container, 'mousewheel', stop)
+			.on(container, 'dblclick', stop)
+			.on(container, 'click', stop);
+
+		L.DomEvent
+			.on(checkboxFilters, 'change', function (ev) {
+				console.log('change', ev.target.checked)
+				if(ev.target.checked) {
+					map.addLayer(this);
+					L.DomUtil.removeClass(filtersCont, 'gmxHidden');
+					//L.gmxUtil.requestLink(scriptLoadedFrom + '/glfx.js')
+				} else {
+					map.removeLayer(this);
+					L.DomUtil.addClass(filtersCont, 'gmxHidden');
+				}
+				// ();
+				// this._bboxUpdate();
+				// var state = this.getCurrentState();
+				// state.gmxLayer.repaint();
+				// this.setCommand('Left');
+				// this.setCommand('Right');
+			}, this);
+
+		return this._webGLFilters;
+	}
+});
+var rastersBgTilesScript = document.currentScript;
+L.rastersBgTiles = function (options) {
+	if (rastersBgTilesScript) {
+		var src = rastersBgTilesScript.src,
+			scriptLoadedFrom = src.substring(0, src.lastIndexOf('/'));
+		console.log('ddd', scriptLoadedFrom);
+		L.gmxUtil.requestLink(scriptLoadedFrom + '/glfx.js');
+		
+	}
+// var scriptSrc = document.currentScript.src;
+	// console.log('ddd', scriptSrc)
+	// var scriptLoadedFrom = scriptSrc.substring(0, scriptSrc.lastIndexOf('/')) : '';
+	return new L.RastersBgTiles(options);
+};
+
 
 
 }());

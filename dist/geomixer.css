@@ -1459,3 +1459,16 @@
 	line-height: 30px;
 	}
 
+.webGLFilters  {
+	vertical-align: super;
+}
+.webGLFilters * {
+    font-family: tahoma;
+	vertical-align: middle;
+}
+.webGLFilters .gmxHidden {
+    display: none;
+}
+
+
+

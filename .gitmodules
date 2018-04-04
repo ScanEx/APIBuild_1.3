@@ -35,3 +35,6 @@
 [submodule "external/Leaflet.GeometryUtil"]
 	path = external/Leaflet.GeometryUtil
 	url = git@github.com:ScanEx/Leaflet.GeometryUtil.git
+[submodule "external/Leaflet.rastersBgTiles"]
+	path = external/Leaflet.rastersBgTiles
+	url = git@github.com:ScanEx/Leaflet.rastersBgTiles.git
