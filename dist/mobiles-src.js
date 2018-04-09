@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-4 14:55:57';
-var buildUUID = 'ef3d3323eef74d6ea6a1a09854114541';
+var buildDate = '2018-4-9 14:13:56';
+var buildUUID = '2cfc911fbfb14f30a55778fa3be1689d';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -19990,12 +19990,12 @@ var gmxSessionManager = {
 					var url = L.gmxUtil.protocol + '//' + serverHost + '/ApiKey.ashx?WrapStyle=None&Key=' + apiKey,
 						storeKey = function(json) {
 							if (json && json.Status === 'ok') {
-								var key = this._sessionKeysRes[serverHost] = json.Result.Key;
+								var key = gmxSessionManager._sessionKeysRes[serverHost] = json.Result.Key;
 								resolve(key);
 							} else {
 								reject();
 							}
-						}.bind(this);
+						};
 					fetch(url, {mode: 'cors'})
 					.then(function(resp) { return resp.json(); })
 					.then(storeKey);
@@ -20496,7 +20496,9 @@ var GmxEventsManager = L.Handler.extend({
 			map = this._map;
 
 		if (ev.originalEvent) {
-			var tagName = ev.originalEvent.target.tagName;
+			var target = ev.originalEvent.target;
+			var tagName = target.tagName.toLowerCase();
+			if (tagName !== 'svg' && target !== map._container) { return; }
 			if (tagName === 'path') { return; }
 			map.gmxMouseDown = L.Browser.webkit && !L.gmxUtil.isIEOrEdge ? ev.originalEvent.which : ev.originalEvent.buttons;
 		}
@@ -23094,6 +23096,15 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 				// dm.fire('moveend');
 			// }
 		// }
+	// },
+
+	// _onMoveEnd: function () {
+		// if (!this._map || this._map._animatingZoom) { return; }
+//console.log('_onMoveEnd', arguments)
+		// requestIdleCallback(function () {
+			// this._update();
+		// }.bind(this), {timeout: 0});
+		//this._update();
 	// },
 
 	_getEvents: function () {
@@ -26986,7 +26997,9 @@ L.gmx.RasterLayer = L.gmx.VectorLayer.extend(
         if (props.MaxZoom) {
             gmx.maxNativeZoom = props.MaxZoom;
         }
-        if (props.sessionKey) {
+
+        props.sessionKey = props.sessionKey || L.gmx.gmxSessionManager.getSessionKeyRes(props.hostName);
+		if (props.sessionKey) {
             gmx.sessionKey = props.sessionKey;
         }
         if (!ph.geometry) {

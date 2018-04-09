@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-4 14:56:02';
-var buildUUID = 'ef3d3323eef74d6ea6a1a09854114541';
+var buildDate = '2018-4-9 14:14:02';
+var buildUUID = '2cfc911fbfb14f30a55778fa3be1689d';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -19990,12 +19990,12 @@ var gmxSessionManager = {
 					var url = L.gmxUtil.protocol + '//' + serverHost + '/ApiKey.ashx?WrapStyle=None&Key=' + apiKey,
 						storeKey = function(json) {
 							if (json && json.Status === 'ok') {
-								var key = this._sessionKeysRes[serverHost] = json.Result.Key;
+								var key = gmxSessionManager._sessionKeysRes[serverHost] = json.Result.Key;
 								resolve(key);
 							} else {
 								reject();
 							}
-						}.bind(this);
+						};
 					fetch(url, {mode: 'cors'})
 					.then(function(resp) { return resp.json(); })
 					.then(storeKey);
@@ -20496,7 +20496,9 @@ var GmxEventsManager = L.Handler.extend({
 			map = this._map;
 
 		if (ev.originalEvent) {
-			var tagName = ev.originalEvent.target.tagName;
+			var target = ev.originalEvent.target;
+			var tagName = target.tagName.toLowerCase();
+			if (tagName !== 'svg' && target !== map._container) { return; }
 			if (tagName === 'path') { return; }
 			map.gmxMouseDown = L.Browser.webkit && !L.gmxUtil.isIEOrEdge ? ev.originalEvent.which : ev.originalEvent.buttons;
 		}
@@ -23094,6 +23096,15 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 				// dm.fire('moveend');
 			// }
 		// }
+	// },
+
+	// _onMoveEnd: function () {
+		// if (!this._map || this._map._animatingZoom) { return; }
+//console.log('_onMoveEnd', arguments)
+		// requestIdleCallback(function () {
+			// this._update();
+		// }.bind(this), {timeout: 0});
+		//this._update();
 	// },
 
 	_getEvents: function () {
@@ -26986,7 +26997,9 @@ L.gmx.RasterLayer = L.gmx.VectorLayer.extend(
         if (props.MaxZoom) {
             gmx.maxNativeZoom = props.MaxZoom;
         }
-        if (props.sessionKey) {
+
+        props.sessionKey = props.sessionKey || L.gmx.gmxSessionManager.getSessionKeyRes(props.hostName);
+		if (props.sessionKey) {
             gmx.sessionKey = props.sessionKey;
         }
         if (!ph.geometry) {
@@ -31836,194 +31849,47 @@ L.control.gmxCopyright = function (options) {
 
 L.Control.GmxZoom = L.Control.Zoom.extend({
     options: {
-        position: 'topleft',
         id: 'zoom',
-        zoomslider: true
+        disableEvents: 'mousemove mousedown contextmenu',
+		//position: 'gmxbottomright',	// topleft left topright right gmxbottomright
+		info: true
     },
-    _stepY: 7,  // slider step
-    _minY: 9,   // slider min Y position
-    _maxY: 9,   // slider max Y position
 
     onAdd: function (map) {
-        var classPrefix = 'leaflet-gmx',
-            container = L.DomUtil.create('div', classPrefix + '-zoomParent'),
-            options = this.options,
-			svgSprite = options.svgSprite || map.options.svgSprite;
-
-        this._container = container;
-        container._id = options.id;
-        container._isZoomControl = true;
-        this._map = map;
-        this._zoomPlaque = L.DomUtil.create('div', classPrefix + '-zoomPlaque', container);
-        var zoomIn = 'Zoom in',
-            zoomOut = 'Zoom out';
-        if (L.gmxLocale) {
-            L.gmxLocale.addText({
-                'eng': {
-                    'Zoom in': 'Zoom in',
-                    'Zoom out': 'Zoom out'
-                },
-                'rus': {
-                    'Zoom in': 'Увеличить',
-                    'Zoom out': 'Уменьшить'
-                }
-            });
-            zoomIn = L.gmxLocale.getText('Zoom in');
-            zoomOut = L.gmxLocale.getText('Zoom out');
+		this.options.zoomInfoTitle = 'Current zoom';
+        if (L.gmxLocale && L.gmxLocale.getLanguage() === 'rus') {
+			this.options.zoomInTitle = 'Увеличить';
+			this.options.zoomOutTitle = 'Уменьшить';
+			this.options.zoomInfoTitle = 'Текущий номер зума';
         }
-        var gmxIconClass = svgSprite ?
-			classPrefix + '-iconSvg'
-			:
-			classPrefix + '-icon ' + classPrefix + '-icon-img ' + classPrefix + '-icon-sprite';
-
-        this._zoomInButton  = this._createDiv(container,
-            classPrefix + (svgSprite ? 'Svg' : '') + '-zoom-in ' + gmxIconClass, zoomIn, this._zoomIn, this);
-        this._zoomOutButton = this._createDiv(container,
-            classPrefix + (svgSprite ? 'Svg' : '') + '-zoom-out ' + gmxIconClass, zoomOut, this._zoomOut, this);
-
-		if (svgSprite) {
-          L.DomUtil.addClass(this._zoomInButton, 'svgIcon');
-          this._zoomInButton.innerHTML = '<svg role="img" class="svgIcon"><use xlink:href="#zoom-in"></use></svg>';
-          L.DomUtil.addClass(this._zoomOutButton, 'svgIcon');
-          this._zoomOutButton.innerHTML = '<svg role="img" class="svgIcon"><use xlink:href="#zoom-out"></use></svg>';
-        }
-
-        map.on('zoomend zoomlevelschange', this._updateDisabled, this);
-        if (options.zoomslider) {
-            this._chkZoomLevelsChange(container);
-        }
-        map.fire('controladd', this);
-        if (map.gmxControlsManager) {
-            map.gmxControlsManager.add(this);
-        }
+		var classPrefix = 'gmxzoom',
+			needInfo = !this._zoomInfo;
+		if (this.options.info && needInfo) {
+			this._zoomInfo = L.DomUtil.create('div', classPrefix + '-info');
+			this._zoomInfo.title = this.options.zoomInfoTitle;
+		}
+		var container = L.Control.Zoom.prototype.onAdd.call(this, map);
+		L.DomEvent.on(container, this.options.disableEvents, L.DomEvent.stop);
+		L.DomEvent.on(container, this.options.disableEvents, L.DomEvent.preventDefault);
+		L.DomUtil.addClass(container, classPrefix + '-container');
+		if (this.options.info && needInfo) {
+			container.insertBefore(this._zoomInfo, this._zoomOutButton);
+		}
         return container;
-    },
-
-    onRemove: function (map) {
-        if (map.gmxControlsManager) {
-            map.gmxControlsManager.remove(this);
-        }
-        map.fire('controlremove', this);
-        L.Control.Zoom.prototype.onRemove.call(this, map);
-    },
-
-    _createDiv: function (container, className, title, fn, context) {
-        var link = L.DomUtil.create('div', className, container);
-        if (title) { link.title = title; }
-
-        var stop = L.DomEvent.stopPropagation;
-
-        L.DomEvent
-            //.on(container, 'mousemove', stop)
-            .on(link, 'click', stop)
-            .on(link, 'mousedown', stop)
-            .on(link, 'dblclick', stop)
-            .on(link, 'click', L.DomEvent.preventDefault)
-            .on(link, 'click', fn || stop, context);
-
-        return link;
-    },
-
-    _setPosition: function () {
-        if (this._zoomVal) {
-            var MinZoom = this._map.getMinZoom(),
-                y = this._maxY - (this._zoom - MinZoom) * this._stepY;
-
-            this._zoomVal.innerHTML = this._zoom;
-            L.DomUtil.setPosition(this._zoomPointer, L.point(4, y));
-        }
-    },
-
-    _getZoomByY: function (y) {
-        if (y < this._minY) { y = this._minY; }
-        else if (y > this._maxY) { y = this._maxY; }
-        return Math.floor((this._maxY - y) / this._stepY);
-    },
-
-    _setSliderSize: function () {
-        var map = this._map,
-            height = this._stepY * (map.getMaxZoom() - map.getMinZoom() + 1);
-        this._maxY = height + 3;
-        this._zoomSliderBG.style.height = height + 'px';
-        height += 72;
-        if (this._zoomSliderCont.style.display !== 'block') {
-            this._zoomPlaque.style.display = 'none';
-            height = 68;
-        } else {
-            this._zoomPlaque.style.display = 'block';
-        }
-        this._zoomPlaque.style.height = height + 'px';
-    },
-
-    _chkZoomLevelsChange: function (container) {
-        var my = this,
-            map = this._map,
-            classPrefix = 'leaflet-gmx',
-            MinZoom = map.getMinZoom(),
-            MaxZoom = map.getMaxZoom();
-
-        if (MinZoom !== this._MinZoom || MaxZoom !== this._MaxZoom) {
-            var delta = MaxZoom - MinZoom;
-            if (MaxZoom < 100 && delta >= 0) {
-                if (!this._zoomSliderCont) {
-                    this._zoomSliderCont  = this._createDiv(container, classPrefix + '-sliderCont');
-                    this._zoomSliderBG  = this._createDiv(this._zoomSliderCont, classPrefix + '-sliderBG');
-                    L.DomEvent.on(this._zoomSliderBG, 'click', function (ev) {
-                        this._zoom = this._getZoomByY(ev.layerY) + map.getMinZoom();
-                        this._map.setZoom(this._zoom);
-                        this._zoomPointer.style.display = this._zoom === map._limitZoom(this._zoom) ? 'block' : 'none';
-                    }, this);
-                    this._zoomPointer  = this._createDiv(this._zoomSliderCont, classPrefix + '-zoomPointer ');
-                    this._zoomVal  = this._createDiv(this._zoomPointer, classPrefix + '-zoomVal ' + classPrefix + '-icon-sprite');
-                    L.DomEvent.on(container, 'mouseover', function () {
-                        var zoom = map.getZoom();
-                        this._zoomPointer.style.display = zoom === map._limitZoom(zoom) ? 'block' : 'none';
-                        if (map.getMaxZoom() !== Infinity) {
-                            this._zoomSliderCont.style.display = 'block';
-                            this._setSliderSize();
-                        }
-                    }, this);
-                    var mouseout = function () {
-                        my._zoomSliderCont.style.display = 'none';
-                        my._setSliderSize();
-                    };
-                    L.DomEvent.on(container, 'mouseout', function () {
-                        if (this._draggable._moving) { return; }
-                        mouseout();
-                    }, this);
-                    var draggable = new L.Draggable(this._zoomPointer);
-                    draggable.on('dragstart', function () {
-                    }, this);
-                    draggable.on('drag', function (ev) {
-                        var pos = ev.target._newPos;
-                        this._zoom = this._getZoomByY(pos.y) + map.getMinZoom();
-                        this._setPosition();
-                    }, this);
-                    draggable.on('dragend', function () {
-                        this._map.setZoom(this._zoom);
-                        mouseout();
-                    }, this);
-                    draggable.enable();
-                    this._draggable = draggable;
-                }
-                this._setSliderSize();
-            }
-            this._MinZoom = MinZoom;
-            this._MaxZoom = MaxZoom;
-        }
-        this._zoom = map._zoom;
-        this._setPosition();
     },
 
     _updateDisabled: function (ev) {
         L.Control.Zoom.prototype._updateDisabled.call(this, ev);
-        this._zoom = this._map._zoom;
-        if (this.options.zoomslider) {
-            if (ev.type === 'zoomlevelschange') {
-                this._chkZoomLevelsChange(this._container);
-            }
-            this._setPosition();
-        }
+		if (this._zoomInfo) {
+			var map = this._map,
+				z = map._zoom;
+			if (z <= map.getMinZoom() || z >= map.getMaxZoom()) {
+				L.DomUtil.addClass(this._zoomInfo, 'gmxZoomRed');
+			} else {
+				L.DomUtil.removeClass(this._zoomInfo, 'gmxZoomRed');
+			}
+			this._zoomInfo.innerHTML = z;
+		}
     },
 
     setVisible: function(isVisible) {
@@ -35278,8 +35144,8 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 		}
 	});
 	L.TileLayer.Mercator = Mercator;
-	L.tileLayer.Mercator = function (options) {
-		return new Mercator(options);
+	L.tileLayer.Mercator = function (url, options) {
+		return new Mercator(url, options);
 	};
 })();
 
@@ -35621,7 +35487,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
             };
 
         var copyrights = {
-            yandex: '&copy; <a href="//yandex.ru/">Yandex</a>',
+            yandex: '&copy; <a href="https://yandex.ru/legal/maps_termsofuse/?lang=en">Yandex</a>',
             collinsbartholomew: '&copy; <a href="http://www.collinsbartholomew.com/">Collins Bartholomew Ltd.</a>',
             geocenter: '&copy; <a href="http://www.geocenter-consulting.ru/">' + _gtxt('ЗАО «Геоцентр-Консалтинг»', 'Geocentre-Consulting') + '</a>',
             openStreetMap: '&copy; OpenStreetMap contributers <a href="http://opendatacommons.org/licenses/odbl/">ODbL</a>',
@@ -35648,6 +35514,9 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 attribution: copyrights.openStreetMap
             }];
         };
+		if (lang === 'rus') {
+			copyrights.yandex = '&copy; <a href="https://yandex.ru/legal/maps_termsofuse/?lang=ru">Яндекс</a>';
+		}
 
         var getURL = function(type) {
             // return 'http://{s}.tile.osm.kosmosnimki.ru/' + type + '/{z}/{x}/{y}.png';
@@ -35834,11 +35703,13 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
             'yandex#map': {
                 rus: 'Карта (Yandex)',
                 eng: 'Map (Yandex)',
-                icon: iconPrefix + 'basemap_sputnik_ru.png',
+                icon: iconPrefix + 'yandex.png',
                 layers: [
                     tileLayerMercator(protocol + '//vec01.maps.yandex.net/tiles?l=map&v=18.01.10-2&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
 					{
-						gmxCopyright: copyrights.yandex
+						gmxCopyright: [{
+							attribution: copyrights.yandex
+						}]
                     })
                 ]
             },
@@ -35849,7 +35720,9 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 layers: [
                     tileLayerMercator(protocol + '//sat01.maps.yandex.net/tiles?l=sat&v=3.363.0&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
 					{
-						gmxCopyright: copyrights.yandex
+						gmxCopyright: [{
+							attribution: copyrights.yandex
+						}]
                     })
                 ]
             },
@@ -35860,11 +35733,15 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 layers: [
                     tileLayerMercator(protocol + '//sat03.maps.yandex.net/tiles?l=sat&v=3.363.0&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
 					{
-						gmxCopyright: copyrights.yandex
+						gmxCopyright: [{
+							attribution: copyrights.yandex
+						}]
                     }),
                     tileLayerMercator(protocol + '//vec01.maps.yandex.net/tiles?l=skl&v=18.01.10-2&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
 					{
-						gmxCopyright: copyrights.yandex
+						gmxCopyright: [{
+							attribution: copyrights.yandex
+						}]
                     })
                 ]
             }
@@ -36595,303 +36472,6 @@ for (i = 0, l = classes.length; i < l; i++) {
 }
 return L.Map.ContextMenu;
 });
-
-
-/** GeoMixer virtual layer for standard tile raster layers (L.TileLayer)
-*/
-(function (){
-
-'use strict';
-
-//this function is copied from L.Utils and modified to allow missing data attributes
-var template = function (str, data) {
-    return str.replace(/\{ *([\w_]+) *\}/g, function (str, key) {
-        var value = data[key];
-        if (value === undefined) {
-            value = '';
-        } else if (typeof value === 'function') {
-            value = value(data);
-        }
-        return value;
-    });
-};
-
-var GmxVirtualTileLayer = function(/*options*/) {}
-
-GmxVirtualTileLayer.prototype.initFromDescription = function(layerDescription) {
-    var props = layerDescription.properties,
-        meta = props.MetaProperties,
-        urlTemplate = meta['url-template'] && meta['url-template'].Value,
-        isMercator = !!meta['merc-projection'],
-        optionsList = meta.optionsList ? meta.optionsList.Value.split(',') : [],
-        options = {};
-
-    if (!urlTemplate) {
-        return new L.gmx.DummyLayer(props);
-    }
-
-    if (props.Copyright) { options.attribution = props.Copyright; }
-
-	optionsList = optionsList.concat(['tms', 'minZoom', 'maxZoom', 'maxNativeZoom']);
-	options = L.extend({}, optionsList.reduce(function(prev, it) {
-		var key = it.trim();
-		if (meta[key]) { prev[key] = meta[key].Value.trim(); }
-		return prev;
-	}.bind(this), {}), options);
-
-    var layer = (isMercator ? L.tileLayer.Mercator : L.tileLayer)(urlTemplate, options);
-
-    layer.getGmxProperties = function() {
-        return props;
-    }
-
-    return layer;
-}
-
-L.gmx.addLayerClass('TMS', GmxVirtualTileLayer);
-
-//depricated - use "TMS" instead
-L.gmx.addLayerClass('TiledRaster', GmxVirtualTileLayer);
-
-var GmxVirtualWMSLayer = function(/*options*/) {}
-
-GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
-    var WMS_OPTIONS = ['layers', 'styles', 'format', 'transparent', 'version', 'minZoom', 'maxZoom', 'tileSize', 'f', 'bboxSR', 'imageSR', 'size'];
-    var WMS_OPTIONS_PROCESSORS = {tileSize: parseInt};
-    var props = layerDescription.properties,
-        meta = props.MetaProperties,
-        baseURL = meta['base-url'] && meta['base-url'].Value,
-        options = {};
-
-    if (!baseURL) {
-        return new L.gmx.DummyLayer(props);
-    }
-
-    if (props.Copyright) {
-        options.attribution = props.Copyright;
-    }
-
-    for (var p in meta) {
-        if (WMS_OPTIONS.indexOf(p) !== -1) {
-            options[p] = WMS_OPTIONS_PROCESSORS[p] ? WMS_OPTIONS_PROCESSORS[p](meta[p].Value) : meta[p].Value;
-        }
-    }
-
-    var layer = L.tileLayer.wms(baseURL, options);
-
-    layer.getGmxProperties = function() {
-        return props;
-    };
-
-    var balloonTemplate = meta['balloonTemplate'] && meta['balloonTemplate'].Value;
-    var infoFormat = meta['info_format'] && meta['info_format'].Value;
-    var popupURLTemplate = meta['popupURLTemplate'] && meta['popupURLTemplate'].Value;
-
-    if (meta['clickable'] && balloonTemplate) {
-        layer.options.clickable = true;
-
-        layer.onAdd = function(map) {
-			L.DomUtil.addClass(map.getContainer(), 'gmx-cursor-help');
-            L.TileLayer.WMS.prototype.onAdd.apply(this, arguments);
-        }
-
-        layer.onRemove = function(map) {
-			L.DomUtil.removeClass(map.getContainer(), 'gmx-cursor-help');
-            lastOpenedPopup && map.removeLayer(lastOpenedPopup);
-            L.TileLayer.WMS.prototype.onRemove.apply(this, arguments);
-        }
-
-        var lastOpenedPopup;
-        layer.gmxEventCheck = function(event) {
-            if (event.type === 'click') {
-                var latlng = event.latlng;
-
-				if (popupURLTemplate) {
-					var url = L.Util.template(popupURLTemplate, {lat: latlng.lat, lng: latlng.lng});
-					var gmxProxy = L.gmx.gmxProxy || '//maps.kosmosnimki.ru/ApiSave.ashx';
-					fetch(gmxProxy + '?WrapStyle=none&get=' + encodeURIComponent(url), {mode: 'cors'})
-						.then(function(resp) {
-							return resp.json();
-						})
-						.then(function(json) {
-							if (json.Status === 'ok' && json.Result) {
-								var content = L.DomUtil.create('div', '');
-								content.innerHTML = json.Result;
-								lastOpenedPopup = L.popup({maxHeight: 400})
-									.setLatLng(latlng)
-									.setContent(content)
-									.openOn(this._map);
-							}
-						}.bind(this))
-						.catch(console.log);
-				} else {
-					var p = this._map.project(latlng),
-						tileSize = layer.options.tileSize,
-						I = p.x % tileSize,
-						J = p.y % tileSize,
-						tilePoint = p.divideBy(tileSize).floor(),
-						url = this.getTileUrl(tilePoint),
-						info = infoFormat || 'application/geojson';
-
-					url = url.replace('=GetMap', '=GetFeatureInfo');
-					// url += '&X=' + I + '&Y=' + J + '&QUERY_LAYERS=' + options.layers;
-					url += '&X=' + I + '&Y=' + J + '&INFO_FORMAT=' + info + '&QUERY_LAYERS=' + options.layers;
-
-					/*eslint-disable no-undef */
-					$.getJSON(url).then(function(geoJSON) {
-						if (geoJSON.features[0]) {
-							var html = template(balloonTemplate, geoJSON.features[0].properties);
-							lastOpenedPopup = L.popup()
-								.setLatLng(event.latlng)
-								.setContent(html)
-								.openOn(this._map);
-						}
-					}.bind(this));
-					/*eslint-enable */
-				}
-            }
-
-            return 1;
-        };
-    }
-
-    return layer;
-}
-
-L.gmx.addLayerClass('WMS', GmxVirtualWMSLayer);
-
-
-var GmxPBXTileLayer = function(/*options*/) {}
-
-GmxPBXTileLayer.prototype.initFromDescription = function(layerDescription) {
-    var props = layerDescription.properties,
-        meta = props.MetaProperties,
-        urlTemplate = meta['url-template'] && meta['url-template'].Value,
-        // isMercator = !!meta['merc-projection'],
-        options = {},
-		mvtOptions = {};
-
-    if (!urlTemplate) {
-        return new L.gmx.DummyLayer(props);
-    }
-
-    if (props.Copyright) {
-        options.attribution = props.Copyright;
-    }
-
-    if (meta.minZoom) {
-        options.minZoom = meta.minZoom.Value;
-    }
-
-    if (meta.maxZoom) {
-        options.maxZoom = meta.maxZoom.Value;
-    }
-
-	mvtOptions.url = urlTemplate;
-	if (meta.debug) {
-		mvtOptions.debug = meta.debug.Value === 'true';
-    }
-	if (meta.visibleLayers) {
-		mvtOptions.visibleLayers = meta.visibleLayers.Value.split(',');
-    }
-	if (meta.clickableLayers) {
-		mvtOptions.clickableLayers = meta.clickableLayers.Value.split(',');
-    }
-	if (meta.filter) {
-	  /**
-	   * The filter function gets called when iterating though each vector tile feature (vtf). You have access
-	   * to every property associated with a given feature (the feature, and the layer). You can also filter
-	   * based of the context (each tile that the feature is drawn onto).
-	   *
-	   * Returning false skips over the feature and it is not drawn.
-	   *
-	   * @param feature
-	   * @returns {boolean}
-	   */
-		var filterLayers = meta.filter.Value.split(',');
-		mvtOptions.filter = function(feature) {
-			for (var i = 0, len = filterLayers.length; i < len; i++) {
-				if (feature.layer.name === filterLayers[i]) {
-				  return true;
-				}
-			}
-			return false;
-		};
-    }
-	var styleTypes = {
-		1: {	//'Point'
-			color: 'rgba(49,79,79,1)',
-			radius: 5,
-			selected: {
-			  color: 'rgba(255,255,0,0.5)',
-			  radius: 6
-			}
-		},
-		2: {	//'LineString'
-			color: 'rgba(161,217,155,0.8)',
-			size: 3,
-			selected: {
-			  color: 'rgba(255,25,0,0.5)',
-			  size: 4
-			}
-		},
-		3: {	//'Polygon'
-			color: 'rgba(149,139,255,0.4)',
-			outline: {
-			  color: 'rgb(20,20,20)',
-			  size: 1
-			},
-			selected: {
-			  color: 'rgba(255,140,0,0.3)',
-				outline: {
-				  color: 'rgba(255,140,0,1)',
-				  size: 2
-				}
-			}
-		}
-	};
-	if (meta.style) {
-		styleTypes = JSON.parse(meta.style.Value);
-	}
-	mvtOptions.style = function (feature) {
-		var type = feature.type;
-		// var name = feature.layer.name;
-		return styleTypes[type] || {};
-    }
-
-	var mvtSource = new L.TileLayer.MVTSource(Object.assign(mvtOptions, {
-	  getIDForLayerFeature: function(feature) {
-		return feature._id;
-	  },
-
-	  /**
-	   * When we want to link events between layers, like clicking on a label and a
-	   * corresponding polygon freature, this will return the corresponding mapping
-	   * between layers. This provides knowledge of which other feature a given feature
-	   * is linked to.
-	   *
-	   * @param layerName  the layer we want to know the linked layer from
-	   * @returns {string} returns corresponding linked layer
-	   */
-	  layerLink: function(layerName) {
-		if (layerName.indexOf('_label') > -1) {
-		  return layerName.replace('_label','');
-		}
-		return layerName + '_label';
-	  }
-
-	}));
-
-    mvtSource.getGmxProperties = function() {
-        return props;
-    }
-
-    return mvtSource;
-}
-
-L.gmx.addLayerClass('PBX', GmxPBXTileLayer);
-
-})();
 
 
 /*
@@ -40322,6 +39902,738 @@ return L.GeometryUtil;
 */
 L.HeatLayer=(L.Layer?L.Layer:L.Class).extend({initialize:function(t,i){this._latlngs=t,L.setOptions(this,i)},setLatLngs:function(t){return this._latlngs=t,this.redraw()},addLatLng:function(t){return this._latlngs.push(t),this.redraw()},setOptions:function(t){return L.setOptions(this,t),this._heat&&this._updateOptions(),this.redraw()},redraw:function(){return!this._heat||this._frame||this._map._animating||(this._frame=L.Util.requestAnimFrame(this._redraw,this)),this},onAdd:function(t){this._map=t,this._canvas||this._initCanvas(),t._panes.overlayPane.appendChild(this._canvas),t.on("moveend",this._reset,this),t.options.zoomAnimation&&L.Browser.any3d&&t.on("zoomanim",this._animateZoom,this),this._reset()},onRemove:function(t){t.getPanes().overlayPane.removeChild(this._canvas),t.off("moveend",this._reset,this),t.options.zoomAnimation&&t.off("zoomanim",this._animateZoom,this)},addTo:function(t){return t.addLayer(this),this},_initCanvas:function(){var t=this._canvas=L.DomUtil.create("canvas","leaflet-heatmap-layer leaflet-layer"),i=L.DomUtil.testProp(["transformOrigin","WebkitTransformOrigin","msTransformOrigin"]);t.style[i]="50% 50%";var a=this._map.getSize();t.width=a.x,t.height=a.y;var s=this._map.options.zoomAnimation&&L.Browser.any3d;L.DomUtil.addClass(t,"leaflet-zoom-"+(s?"animated":"hide")),this._heat=simpleheat(t),this._updateOptions()},_updateOptions:function(){this._heat.radius(this.options.radius||this._heat.defaultRadius,this.options.blur),this.options.gradient&&this._heat.gradient(this.options.gradient),this.options.max&&this._heat.max(this.options.max)},_reset:function(){var t=this._map.containerPointToLayerPoint([0,0]);L.DomUtil.setPosition(this._canvas,t);var i=this._map.getSize();this._heat._width!==i.x&&(this._canvas.width=this._heat._width=i.x),this._heat._height!==i.y&&(this._canvas.height=this._heat._height=i.y),this._redraw()},_redraw:function(){var t,i,a,s,e,n,h,o,r,d=[],_=this._heat._r,l=this._map.getSize(),m=new L.Bounds(L.point([-_,-_]),l.add([_,_])),c=void 0===this.options.max?1:this.options.max,u=void 0===this.options.maxZoom?this._map.getMaxZoom():this.options.maxZoom,f=1/Math.pow(2,Math.max(0,Math.min(u-this._map.getZoom(),12))),g=_/2,p=[],v=this._map._getMapPanePos(),w=v.x%g,y=v.y%g;for(t=0,i=this._latlngs.length;i>t;t++)if(a=this._map.latLngToContainerPoint(this._latlngs[t]),m.contains(a)){e=Math.floor((a.x-w)/g)+2,n=Math.floor((a.y-y)/g)+2;var x=void 0!==this._latlngs[t].alt?this._latlngs[t].alt:void 0!==this._latlngs[t][2]?+this._latlngs[t][2]:1;r=x*f,p[n]=p[n]||[],s=p[n][e],s?(s[0]=(s[0]*s[2]+a.x*r)/(s[2]+r),s[1]=(s[1]*s[2]+a.y*r)/(s[2]+r),s[2]+=r):p[n][e]=[a.x,a.y,r]}for(t=0,i=p.length;i>t;t++)if(p[t])for(h=0,o=p[t].length;o>h;h++)s=p[t][h],s&&d.push([Math.round(s[0]),Math.round(s[1]),Math.min(s[2],c)]);this._heat.data(d).draw(this.options.minOpacity),this._frame=null},_animateZoom:function(t){var i=this._map.getZoomScale(t.zoom),a=this._map._getCenterOffset(t.center)._multiplyBy(-i).subtract(this._map._getMapPanePos());L.DomUtil.setTransform?L.DomUtil.setTransform(this._canvas,a,i):this._canvas.style[L.DomUtil.TRANSFORM]=L.DomUtil.getTranslateString(a)+" scale("+i+")"}}),L.heatLayer=function(t,i){return new L.HeatLayer(t,i)};
 
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function (global){
+var L = (typeof window !== "undefined" ? window['L'] : typeof global !== "undefined" ? global['L'] : null)
+var fetchJsonp = require('fetch-jsonp')
+var bboxIntersect = require('bbox-intersect')
+
+/**
+ * Converts tile xyz coordinates to Quadkey
+ * @param {Number} x
+ * @param {Number} y
+ * @param {Number} z
+ * @return {Number} Quadkey
+ */
+function toQuadKey (x, y, z) {
+  var index = ''
+  for (var i = z; i > 0; i--) {
+    var b = 0
+    var mask = 1 << (i - 1)
+    if ((x & mask) !== 0) b++
+    if ((y & mask) !== 0) b += 2
+    index += b.toString()
+  }
+  return index
+}
+
+/**
+ * Converts Leaflet BBoxString to Bing BBox
+ * @param {String} bboxString 'southwest_lng,southwest_lat,northeast_lng,northeast_lat'
+ * @return {Array} [south_lat, west_lng, north_lat, east_lng]
+ */
+function toBingBBox (bboxString) {
+  var bbox = bboxString.split(',')
+  return [bbox[1], bbox[0], bbox[3], bbox[2]]
+}
+
+var VALID_IMAGERY_SETS = [
+  'Aerial',
+  'AerialWithLabels',
+  'AerialWithLabelsOnDemand',
+  'Road',
+  'RoadOnDemand',
+  'CanvasLight',
+  'CanvasDark',
+  'CanvasGray',
+  'OrdnanceSurvey'
+]
+
+var DYNAMIC_IMAGERY_SETS = [
+  'AerialWithLabelsOnDemand',
+  'RoadOnDemand'
+]
+
+/**
+ * Create a new Bing Maps layer.
+ * @param {string|object} options Either a [Bing Maps Key](https://msdn.microsoft.com/en-us/library/ff428642.aspx) or an options object
+ * @param {string} options.BingMapsKey A valid Bing Maps Key (required)
+ * @param {string} [options.imagerySet=Aerial] Type of imagery, see https://msdn.microsoft.com/en-us/library/ff701716.aspx
+ * @param {string} [options.culture='en-US'] Language for labels, see https://msdn.microsoft.com/en-us/library/hh441729.aspx
+ * @return {L.TileLayer} A Leaflet TileLayer to add to your map
+ *
+ * Create a basic map
+ * @example
+ * var map = L.map('map').setView([51.505, -0.09], 13)
+ * L.TileLayer.Bing(MyBingMapsKey).addTo(map)
+ */
+L.TileLayer.Bing = L.TileLayer.extend({
+  options: {
+    bingMapsKey: null, // Required
+    imagerySet: 'Aerial',
+    culture: 'en-US',
+    minZoom: 1,
+    minNativeZoom: 1,
+    maxNativeZoom: 19
+  },
+
+  statics: {
+    METADATA_URL: 'https://dev.virtualearth.net/REST/v1/Imagery/Metadata/{imagerySet}?key={bingMapsKey}&include=ImageryProviders&uriScheme=https',
+    POINT_METADATA_URL: 'https://dev.virtualearth.net/REST/v1/Imagery/Metadata/{imagerySet}/{lat},{lng}?zl={z}&key={bingMapsKey}&uriScheme=https'
+  },
+
+  initialize: function (options) {
+    if (typeof options === 'string') {
+      options = { bingMapsKey: options }
+    }
+    if (options && options.BingMapsKey) {
+      options.bingMapsKey = options.BingMapsKey
+      console.warn('use options.bingMapsKey instead of options.BingMapsKey')
+    }
+    if (!options || !options.bingMapsKey) {
+      throw new Error('Must supply options.BingMapsKey')
+    }
+    options = L.setOptions(this, options)
+    if (VALID_IMAGERY_SETS.indexOf(options.imagerySet) < 0) {
+      throw new Error("'" + options.imagerySet + "' is an invalid imagerySet, see https://github.com/digidem/leaflet-bing-layer#parameters")
+    }
+    if (options && options.style && DYNAMIC_IMAGERY_SETS.indexOf(options.imagerySet) < 0) {
+      console.warn('Dynamic styles will only work with these imagerySet choices: ' + DYNAMIC_IMAGERY_SETS.join(', '))
+    }
+
+    var metaDataUrl = L.Util.template(L.TileLayer.Bing.METADATA_URL, {
+      bingMapsKey: this.options.bingMapsKey,
+      imagerySet: this.options.imagerySet
+    })
+
+    this._imageryProviders = []
+    this._attributions = []
+
+    // Keep a reference to the promise so we can use it later
+    this._fetch = fetchJsonp(metaDataUrl, {jsonpCallback: 'jsonp'})
+      .then(function (response) {
+        return response.json()
+      })
+      .then(this._metaDataOnLoad.bind(this))
+      .catch(console.error.bind(console))
+
+    // for https://github.com/Leaflet/Leaflet/issues/137
+    if (!L.Browser.android) {
+      this.on('tileunload', this._onTileRemove)
+    }
+  },
+
+  createTile: function (coords, done) {
+    var tile = document.createElement('img')
+
+    L.DomEvent.on(tile, 'load', L.bind(this._tileOnLoad, this, done, tile))
+    L.DomEvent.on(tile, 'error', L.bind(this._tileOnError, this, done, tile))
+
+    if (this.options.crossOrigin) {
+      tile.crossOrigin = ''
+    }
+
+    /*
+     Alt tag is set to empty string to keep screen readers from reading URL and for compliance reasons
+     http://www.w3.org/TR/WCAG20-TECHS/H67
+    */
+    tile.alt = ''
+
+    // Don't create closure if we don't have to
+    if (this._url) {
+      tile.src = this.getTileUrl(coords)
+    } else {
+      this._fetch.then(function () {
+        tile.src = this.getTileUrl(coords)
+      }.bind(this)).catch(function (e) {
+        console.error(e)
+        done(e)
+      })
+    }
+
+    return tile
+  },
+
+  getTileUrl: function (coords) {
+    var quadkey = toQuadKey(coords.x, coords.y, coords.z)
+    var url = L.Util.template(this._url, {
+      quadkey: quadkey,
+      subdomain: this._getSubdomain(coords),
+      culture: this.options.culture
+    })
+    if (typeof this.options.style === 'string') {
+      url += '&st=' + this.options.style
+    }
+    return url
+  },
+
+  // Update the attribution control every time the map is moved
+  onAdd: function (map) {
+    map.on('moveend', this._updateAttribution, this)
+    L.TileLayer.prototype.onAdd.call(this, map)
+    this._attributions.forEach(function (attribution) {
+      map.attributionControl.addAttribution(attribution)
+    })
+  },
+
+  // Clean up events and remove attributions from attribution control
+  onRemove: function (map) {
+    map.off('moveend', this._updateAttribution, this)
+    this._attributions.forEach(function (attribution) {
+      map.attributionControl.removeAttribution(attribution)
+    })
+    L.TileLayer.prototype.onRemove.call(this, map)
+  },
+
+  /**
+   * Get the [Bing Imagery metadata](https://msdn.microsoft.com/en-us/library/ff701712.aspx)
+   * for a specific [`LatLng`](http://leafletjs.com/reference.html#latlng)
+   * and zoom level. If either `latlng` or `zoom` is omitted and the layer is attached
+   * to a map, the map center and current map zoom are used.
+   * @param {L.LatLng} latlng
+   * @param {Number} zoom
+   * @return {Promise} Resolves to the JSON metadata
+   */
+  getMetaData: function (latlng, zoom) {
+    if (!this._map && (!latlng || !zoom)) {
+      return Promise.reject(new Error('If layer is not attached to map, you must provide LatLng and zoom'))
+    }
+    latlng = latlng || this._map.getCenter()
+    zoom = zoom || this._map.getZoom()
+    var PointMetaDataUrl = L.Util.template(L.TileLayer.Bing.POINT_METADATA_URL, {
+      bingMapsKey: this.options.bingMapsKey,
+      imagerySet: this.options.imagerySet,
+      z: zoom,
+      lat: latlng.lat,
+      lng: latlng.lng
+    })
+    return fetchJsonp(PointMetaDataUrl, {jsonpCallback: 'jsonp'})
+      .then(function (response) {
+        return response.json()
+      })
+      .catch(console.error.bind(console))
+  },
+
+  _metaDataOnLoad: function (metaData) {
+    if (metaData.statusCode !== 200) {
+      throw new Error('Bing Imagery Metadata error: \n' + JSON.stringify(metaData, null, '  '))
+    }
+    var resource = metaData.resourceSets[0].resources[0]
+    this._url = resource.imageUrl
+    this._imageryProviders = resource.imageryProviders || []
+    this.options.subdomains = resource.imageUrlSubdomains
+    this._updateAttribution()
+    return Promise.resolve()
+  },
+
+  /**
+   * Update the attribution control of the map with the provider attributions
+   * within the current map bounds
+   */
+  _updateAttribution: function () {
+    var map = this._map
+    if (!map || !map.attributionControl) return
+    var zoom = map.getZoom()
+    var bbox = toBingBBox(map.getBounds().toBBoxString())
+    this._fetch.then(function () {
+      var newAttributions = this._getAttributions(bbox, zoom)
+      var prevAttributions = this._attributions
+      // Add any new provider attributions in the current area to the attribution control
+      newAttributions.forEach(function (attr) {
+        if (prevAttributions.indexOf(attr) > -1) return
+        map.attributionControl.addAttribution(attr)
+      })
+      // Remove any attributions that are no longer in the current area from the attribution control
+      prevAttributions.filter(function (attr) {
+        if (newAttributions.indexOf(attr) > -1) return
+        map.attributionControl.removeAttribution(attr)
+      })
+      this._attributions = newAttributions
+    }.bind(this))
+  },
+
+  /**
+   * Returns an array of attributions for given bbox and zoom
+   * @private
+   * @param {Array} bbox [west, south, east, north]
+   * @param {Number} zoom
+   * @return {Array} Array of attribution strings for each provider
+   */
+  _getAttributions: function (bbox, zoom) {
+    return this._imageryProviders.reduce(function (attributions, provider) {
+      for (var i = 0; i < provider.coverageAreas.length; i++) {
+        if (bboxIntersect(bbox, provider.coverageAreas[i].bbox) &&
+          zoom >= provider.coverageAreas[i].zoomMin &&
+          zoom <= provider.coverageAreas[i].zoomMax) {
+          attributions.push(provider.attribution)
+          return attributions
+        }
+      }
+      return attributions
+    }, [])
+  }
+})
+
+L.tileLayer.bing = function (options) {
+  return new L.TileLayer.Bing(options)
+}
+
+module.exports = L.TileLayer.Bing
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"bbox-intersect":2,"fetch-jsonp":3}],2:[function(require,module,exports){
+module.exports = function(bbox1, bbox2){
+  if(!(
+      bbox1[0] > bbox2[2] ||
+      bbox1[2] < bbox2[0] ||
+      bbox1[3] < bbox2[1] ||
+      bbox1[1] > bbox2[3]
+    )){
+      return true;
+  } else {
+    return false;
+  }
+}
+},{}],3:[function(require,module,exports){
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module);
+  } else {
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod);
+    global.fetchJsonp = mod.exports;
+  }
+})(this, function (exports, module) {
+  'use strict';
+
+  var defaultOptions = {
+    timeout: 5000,
+    jsonpCallback: 'callback',
+    jsonpCallbackFunction: null
+  };
+
+  function generateCallbackFunction() {
+    return 'jsonp_' + Date.now() + '_' + Math.ceil(Math.random() * 100000);
+  }
+
+  // Known issue: Will throw 'Uncaught ReferenceError: callback_*** is not defined' error if request timeout
+  function clearFunction(functionName) {
+    // IE8 throws an exception when you try to delete a property on window
+    // http://stackoverflow.com/a/1824228/751089
+    try {
+      delete window[functionName];
+    } catch (e) {
+      window[functionName] = undefined;
+    }
+  }
+
+  function removeScript(scriptId) {
+    var script = document.getElementById(scriptId);
+    document.getElementsByTagName('head')[0].removeChild(script);
+  }
+
+  var fetchJsonp = function fetchJsonp(url) {
+    var options = arguments[1] === undefined ? {} : arguments[1];
+
+    var timeout = options.timeout != null ? options.timeout : defaultOptions.timeout;
+    var jsonpCallback = options.jsonpCallback != null ? options.jsonpCallback : defaultOptions.jsonpCallback;
+
+    var timeoutId = undefined;
+
+    return new Promise(function (resolve, reject) {
+      var callbackFunction = options.jsonpCallbackFunction || generateCallbackFunction();
+
+      window[callbackFunction] = function (response) {
+        resolve({
+          ok: true,
+          // keep consistent with fetch API
+          json: function json() {
+            return Promise.resolve(response);
+          }
+        });
+
+        if (timeoutId) clearTimeout(timeoutId);
+
+        removeScript(jsonpCallback + '_' + callbackFunction);
+
+        clearFunction(callbackFunction);
+      };
+
+      // Check if the user set their own params, and if not add a ? to start a list of params
+      url += url.indexOf('?') === -1 ? '?' : '&';
+
+      var jsonpScript = document.createElement('script');
+      jsonpScript.setAttribute('src', url + jsonpCallback + '=' + callbackFunction);
+      jsonpScript.id = jsonpCallback + '_' + callbackFunction;
+      document.getElementsByTagName('head')[0].appendChild(jsonpScript);
+
+      timeoutId = setTimeout(function () {
+        reject(new Error('JSONP request to ' + url + ' timed out'));
+
+        clearFunction(callbackFunction);
+        removeScript(jsonpCallback + '_' + callbackFunction);
+      }, timeout);
+    });
+  };
+
+  // export as global function
+  /*
+  let local;
+  if (typeof global !== 'undefined') {
+    local = global;
+  } else if (typeof self !== 'undefined') {
+    local = self;
+  } else {
+    try {
+      local = Function('return this')();
+    } catch (e) {
+      throw new Error('polyfill failed because global object is unavailable in this environment');
+    }
+  }
+  
+  local.fetchJsonp = fetchJsonp;
+  */
+
+  module.exports = fetchJsonp;
+});
+},{}]},{},[1]);
+
+
+/** GeoMixer virtual layer for standard tile raster layers (L.TileLayer)
+*/
+(function (){
+
+'use strict';
+
+//this function is copied from L.Utils and modified to allow missing data attributes
+var template = function (str, data) {
+    return str.replace(/\{ *([\w_]+) *\}/g, function (str, key) {
+        var value = data[key];
+        if (value === undefined) {
+            value = '';
+        } else if (typeof value === 'function') {
+            value = value(data);
+        }
+        return value;
+    });
+};
+
+var GmxVirtualTileLayer = function(/*options*/) {}
+
+GmxVirtualTileLayer.prototype.initFromDescription = function(layerDescription) {
+    var props = layerDescription.properties,
+        meta = props.MetaProperties,
+        urlTemplate = meta['url-template'] && meta['url-template'].Value,
+        isMercator = !!meta['merc-projection'],
+        optionsList = meta.optionsList ? meta.optionsList.Value.split(',') : [],
+        options = {};
+
+    if (!urlTemplate) {
+        return new L.gmx.DummyLayer(props);
+    }
+
+    if (props.Copyright) { options.attribution = props.Copyright; }
+
+	optionsList = optionsList.concat(['tms', 'minZoom', 'maxZoom', 'maxNativeZoom']);
+	options = L.extend({}, optionsList.reduce(function(prev, it) {
+		var key = it.trim();
+		if (meta[key]) { prev[key] = meta[key].Value.trim(); }
+		return prev;
+	}.bind(this), {}), options);
+
+    var layer = (isMercator ? L.tileLayer.Mercator : L.tileLayer)(urlTemplate, options);
+
+    layer.getGmxProperties = function() {
+        return props;
+    }
+
+    return layer;
+}
+
+L.gmx.addLayerClass('TMS', GmxVirtualTileLayer);
+
+//depricated - use "TMS" instead
+L.gmx.addLayerClass('TiledRaster', GmxVirtualTileLayer);
+
+var GmxVirtualWMSLayer = function(/*options*/) {}
+
+GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
+    var WMS_OPTIONS = ['layers', 'styles', 'format', 'transparent', 'version', 'minZoom', 'maxZoom', 'tileSize', 'f', 'bboxSR', 'imageSR', 'size'];
+    var WMS_OPTIONS_PROCESSORS = {tileSize: parseInt};
+    var props = layerDescription.properties,
+        meta = props.MetaProperties,
+        baseURL = meta['base-url'] && meta['base-url'].Value,
+        options = {};
+
+    if (!baseURL) {
+        return new L.gmx.DummyLayer(props);
+    }
+
+    if (props.Copyright) {
+        options.attribution = props.Copyright;
+    }
+
+    for (var p in meta) {
+        if (WMS_OPTIONS.indexOf(p) !== -1) {
+            options[p] = WMS_OPTIONS_PROCESSORS[p] ? WMS_OPTIONS_PROCESSORS[p](meta[p].Value) : meta[p].Value;
+        }
+    }
+
+    var layer = L.tileLayer.wms(baseURL, options);
+
+    layer.getGmxProperties = function() {
+        return props;
+    };
+
+    var balloonTemplate = meta['balloonTemplate'] && meta['balloonTemplate'].Value;
+    var infoFormat = meta['info_format'] && meta['info_format'].Value;
+    var popupURLTemplate = meta['popupURLTemplate'] && meta['popupURLTemplate'].Value;
+
+    if (meta['clickable'] && balloonTemplate) {
+        layer.options.clickable = true;
+
+        layer.onAdd = function(map) {
+			L.DomUtil.addClass(map.getContainer(), 'gmx-cursor-help');
+            L.TileLayer.WMS.prototype.onAdd.apply(this, arguments);
+        }
+
+        layer.onRemove = function(map) {
+			L.DomUtil.removeClass(map.getContainer(), 'gmx-cursor-help');
+            lastOpenedPopup && map.removeLayer(lastOpenedPopup);
+            L.TileLayer.WMS.prototype.onRemove.apply(this, arguments);
+        }
+
+        var lastOpenedPopup;
+        layer.gmxEventCheck = function(event) {
+            if (event.type === 'click') {
+                var latlng = event.latlng;
+
+				if (popupURLTemplate) {
+					var url = L.Util.template(popupURLTemplate, {lat: latlng.lat, lng: latlng.lng});
+					var gmxProxy = L.gmx.gmxProxy || '//maps.kosmosnimki.ru/ApiSave.ashx';
+					fetch(gmxProxy + '?WrapStyle=none&get=' + encodeURIComponent(url), {mode: 'cors'})
+						.then(function(resp) {
+							return resp.json();
+						})
+						.then(function(json) {
+							if (json.Status === 'ok' && json.Result) {
+								var content = L.DomUtil.create('div', '');
+								content.innerHTML = json.Result;
+								lastOpenedPopup = L.popup({maxHeight: 400})
+									.setLatLng(latlng)
+									.setContent(content)
+									.openOn(this._map);
+							}
+						}.bind(this))
+						.catch(console.log);
+				} else {
+					var p = this._map.project(latlng),
+						tileSize = layer.options.tileSize,
+						I = p.x % tileSize,
+						J = p.y % tileSize,
+						tilePoint = p.divideBy(tileSize).floor(),
+						url = this.getTileUrl(tilePoint),
+						info = infoFormat || 'application/geojson';
+
+					url = url.replace('=GetMap', '=GetFeatureInfo');
+					// url += '&X=' + I + '&Y=' + J + '&QUERY_LAYERS=' + options.layers;
+					url += '&X=' + I + '&Y=' + J + '&INFO_FORMAT=' + info + '&QUERY_LAYERS=' + options.layers;
+
+					/*eslint-disable no-undef */
+					$.getJSON(url).then(function(geoJSON) {
+						if (geoJSON.features[0]) {
+							var html = template(balloonTemplate, geoJSON.features[0].properties);
+							lastOpenedPopup = L.popup()
+								.setLatLng(event.latlng)
+								.setContent(html)
+								.openOn(this._map);
+						}
+					}.bind(this));
+					/*eslint-enable */
+				}
+            }
+
+            return 1;
+        };
+    }
+
+    return layer;
+}
+
+L.gmx.addLayerClass('WMS', GmxVirtualWMSLayer);
+
+// if (L.TileLayer.MVTSource) {
+	var GmxPBXTileLayer = function(/*options*/) {}
+
+	GmxPBXTileLayer.prototype.initFromDescription = function(layerDescription) {
+		var props = layerDescription.properties,
+			meta = props.MetaProperties,
+			urlTemplate = meta['url-template'] && meta['url-template'].Value,
+			// isMercator = !!meta['merc-projection'],
+			options = {},
+			mvtOptions = {};
+
+		if (!urlTemplate) {
+			return new L.gmx.DummyLayer(props);
+		}
+
+		if (props.Copyright) {
+			options.attribution = props.Copyright;
+		}
+
+		if (meta.minZoom) {
+			options.minZoom = meta.minZoom.Value;
+		}
+
+		if (meta.maxZoom) {
+			options.maxZoom = meta.maxZoom.Value;
+		}
+
+		mvtOptions.url = urlTemplate;
+		if (meta.debug) {
+			mvtOptions.debug = meta.debug.Value === 'true';
+		}
+		if (meta.visibleLayers) {
+			mvtOptions.visibleLayers = meta.visibleLayers.Value.split(',');
+		}
+		if (meta.clickableLayers) {
+			mvtOptions.clickableLayers = meta.clickableLayers.Value.split(',');
+		}
+		if (meta.filter) {
+		  /**
+		   * The filter function gets called when iterating though each vector tile feature (vtf). You have access
+		   * to every property associated with a given feature (the feature, and the layer). You can also filter
+		   * based of the context (each tile that the feature is drawn onto).
+		   *
+		   * Returning false skips over the feature and it is not drawn.
+		   *
+		   * @param feature
+		   * @returns {boolean}
+		   */
+			var filterLayers = meta.filter.Value.split(',');
+			mvtOptions.filter = function(feature) {
+				for (var i = 0, len = filterLayers.length; i < len; i++) {
+					if (feature.layer.name === filterLayers[i]) {
+					  return true;
+					}
+				}
+				return false;
+			};
+		}
+		var styleTypes = {
+			1: {	//'Point'
+				color: 'rgba(49,79,79,1)',
+				radius: 5,
+				selected: {
+				  color: 'rgba(255,255,0,0.5)',
+				  radius: 6
+				}
+			},
+			2: {	//'LineString'
+				color: 'rgba(161,217,155,0.8)',
+				size: 3,
+				selected: {
+				  color: 'rgba(255,25,0,0.5)',
+				  size: 4
+				}
+			},
+			3: {	//'Polygon'
+				color: 'rgba(149,139,255,0.4)',
+				outline: {
+				  color: 'rgb(20,20,20)',
+				  size: 1
+				},
+				selected: {
+				  color: 'rgba(255,140,0,0.3)',
+					outline: {
+					  color: 'rgba(255,140,0,1)',
+					  size: 2
+					}
+				}
+			}
+		};
+		if (meta.style) {
+			styleTypes = JSON.parse(meta.style.Value);
+		}
+		mvtOptions.style = function (feature) {
+			var type = feature.type;
+			// var name = feature.layer.name;
+			return styleTypes[type] || {};
+		}
+
+		var mvtSource = new L.TileLayer.MVTSource(Object.assign(mvtOptions, {
+		  getIDForLayerFeature: function(feature) {
+			return feature._id;
+		  },
+
+		  /**
+		   * When we want to link events between layers, like clicking on a label and a
+		   * corresponding polygon freature, this will return the corresponding mapping
+		   * between layers. This provides knowledge of which other feature a given feature
+		   * is linked to.
+		   *
+		   * @param layerName  the layer we want to know the linked layer from
+		   * @returns {string} returns corresponding linked layer
+		   */
+		  layerLink: function(layerName) {
+			if (layerName.indexOf('_label') > -1) {
+			  return layerName.replace('_label','');
+			}
+			return layerName + '_label';
+		  }
+
+		}));
+
+		mvtSource.getGmxProperties = function() {
+			return props;
+		}
+
+		return mvtSource;
+	}
+
+	L.gmx.addLayerClass('PBX', GmxPBXTileLayer);
+// }
+
+// if (L.tileLayer.bing) {
+	var GmxBingLayer = function(/*options*/) {}
+
+	GmxBingLayer.prototype.initFromDescription = function(layerDescription) {
+		var props = layerDescription.properties,
+			meta = props.MetaProperties,
+			bingMapsKey = meta['bingMapsKey'] && meta['bingMapsKey'].Value,
+			imagerySet = meta['imagerySet'] && meta['imagerySet'].Value,
+			culture = meta['culture'] && meta['culture'].Value,
+			style = meta['style'] && meta['style'].Value,
+			options = {
+				bingMapsKey: bingMapsKey ||'AuhiCJHlGzhg93IqUH_oCpl_-ZUrIE6SPftlyGYUvr9Amx5nzA-WqGcPquyFZl4L',
+				imagerySet: imagerySet || '',
+				culture: culture || '',
+				style: style || ''
+			};
+
+		if (props.Copyright) { options.attribution = props.Copyright; }
+
+		var layer = L.tileLayer.bing(options);
+
+		layer.getGmxProperties = function() {
+			return props;
+		}
+
+		return layer;
+	}
+
+	L.gmx.addLayerClass('BING', GmxBingLayer);
+// }
+
+})();
+
+
+var rastersBgTilesScript = document.currentScript;
+
 L.RastersBgTiles = L.ImageOverlay.extend({
 	options: {
 		scanLayersType: 'CR'
@@ -40348,13 +40660,28 @@ L.RastersBgTiles = L.ImageOverlay.extend({
 			this.addInteractiveTarget(this._container);
 		}
 		var size = map.getSize();
-		this._canvas.width = size.x; this._canvas.height = size.y;
+		this._canvas.width = this._nextHighestPowerOfTwo(size.x); this._canvas.height = this._nextHighestPowerOfTwo(size.y);
 
 		L.DomUtil.addClass(this._container, 'leaflet-zoom-' + (map.options.zoomAnimation && L.Browser.any3d ? 'animated' : 'hide'));
 		if (this.options.className) { L.DomUtil.addClass(this._container, this.options.className); }
 		if (this.options.zIndex) { this._updateZIndex(); }
 		this._repaint();
+		if (window.fx) {
+			window.test = window.fx.canvas(this._canvas);
+			this._container.insertBefore(window.test, this._canvas);
+			var texture = window.test.texture(this._canvas);
+			 window.test.draw(texture);
+		}
+
 	},
+
+    _nextHighestPowerOfTwo: function (x) {
+        --x;
+        for (var i = 1; i < 32; i <<= 1) {
+            x = x | x >> i;
+        }
+        return x + 1;
+    },
 
 	onRemove: function (map) {
 		for(var layerID in this._layersBG) {
@@ -40377,7 +40704,7 @@ L.RastersBgTiles = L.ImageOverlay.extend({
 		var map = this._map,
 			size = map.getSize();
 
-		this._canvas.width = size.x; this._canvas.height = size.y;
+		this._canvas.width = this._nextHighestPowerOfTwo(size.x); this._canvas.height = this._nextHighestPowerOfTwo(size.y);
 		this._onmoveend();
 	},
 
@@ -40464,10 +40791,15 @@ console.log('_rHook ____', info.zKey);
 				if (coords.z === z) {
 					var pos = coords.scaleBy(tileSize)._subtract(originShift);
 					ctx.drawImage(tile.el, pos.x, pos.y, 256, 256);
-// console.log('_repaint ____', layerID, tt, tile);
 				}
 			}
 		}.bind(this));
+console.log('_repaint ____', window.test);
+		if (window.test) {
+			this._texture = window.test.texture(this._canvas);
+			// window.test.draw(texture);
+			//window.test.brightnessContrast(-0.13, 0.76).update();
+		}
     },
 
 	_removeLayerBG: function (it) {
@@ -40512,55 +40844,82 @@ console.log('_rHook ____', info.zKey);
     },
 
 	getWebGLFiltersContainer: function (map) {
-		var container = this._webGLFilters = L.DomUtil.create('span', 'webGLFilters');
+		var container = this._webGLFilters = L.DomUtil.create('span', 'webGLFilters'),
+			filters = [
+				{name: 'brightnessContrast', title: 'Brightness/Contrast', sliders: [0, 0]}
+			],
+			currentFilter = filters[0],
+			opt = filters.map(function(it) { return '<option value="' + it.name + '">' + it.title + '</option>'; }).join('\n');
+			// ,
+			// setCode = function(nm, val) {
+				// if (currentFilter === 'brightnessContrast') {
+					
+				// }
+			// };
+			
+		
+		// <option>Brightness / Contrast</option>\
+		// <option>Hue / Saturation</option>\
+		// <option>Vibrance</option>\
+		// <option>Denoise</option>\
+		// <option>Unsharp Mask</option>\
+		// <option>Noise</option>\
+		// <option>Sepia</option>\
+		// <option>Vignette</option>\
+		// <option disabled="true">---- Blur -----</option>\
+		// <option>Zoom Blur</option>\
+		// <option>Triangle Blur</option>\
+		// <option>Tilt Shift</option>\
+		// <option>Lens Blur</option>\
+		// <option disabled="true">---- Warp -----</option>\
+		// <option>Swirl</option>\
+		// <option>Bulge / Pinch</option>\
+		// <option disabled="true">---- Fun -----</option>\
+		// <option>Ink</option>\
+		// <option>Edge Work</option>\
+		// <option>Hexagonal Pixelate</option>\
+		// <option>Dot Screen</option>\
+		// <option>Color Halftone</option>\
+		
 		container.innerHTML = '\
+<span class="gmxHidden filtersCont">\
+	<div class="gmxSliderCont">\
+		<div class="gmxSlider">\
+			<a class="gmxSliderPointer" href="#"></a>\
+		</div>\
+		<div class="gmxSlider">\
+			<a class="gmxSliderPointer" href="#"></a>\
+		</div>\
+	</div>\
+	<select class="filterSelect">\
+	' + opt + '\
+	</select>\
+</span>\
 <span class="inputCont">\
 <input type="checkbox" class="checkboxFilters"> - фильтр\
 </span>\
-<span class="gmxHidden filtersCont">\
-	<select class="filters">\
-		<option disabled="true">---- Adjust -----</option>\
-		<option>Brightness / Contrast</option>\
-		<option>Hue / Saturation</option>\
-		<option>Vibrance</option>\
-		<option>Denoise</option>\
-		<option>Unsharp Mask</option>\
-		<option>Noise</option>\
-		<option>Sepia</option>\
-		<option>Vignette</option>\
-		<option disabled="true">---- Blur -----</option>\
-		<option>Zoom Blur</option>\
-		<option>Triangle Blur</option>\
-		<option>Tilt Shift</option>\
-		<option>Lens Blur</option>\
-		<option disabled="true">---- Warp -----</option>\
-		<option>Swirl</option>\
-		<option>Bulge / Pinch</option>\
-		<option disabled="true">---- Fun -----</option>\
-		<option>Ink</option>\
-		<option>Edge Work</option>\
-		<option>Hexagonal Pixelate</option>\
-		<option>Dot Screen</option>\
-		<option>Color Halftone</option>\
-	</select>\
-</span>\
 ';
 		var	checkboxFilters = container.getElementsByClassName('checkboxFilters')[0],
-			filtersCont = container.getElementsByClassName('filtersCont')[0];
+			filterSelect = container.getElementsByClassName('filterSelect')[0],
+			filtersCont = container.getElementsByClassName('filtersCont')[0],
+			gmxSliderPointers = container.getElementsByClassName('gmxSliderPointer');
 
 		var stop = L.DomEvent.stopPropagation;
+		// ,
+			// preventDefault = L.DomEvent.preventDefault;
 		L.DomEvent
 			.on(container, 'contextmenu', stop)
 			.on(container, 'touchstart', stop)
 			.on(container, 'mousemove', stop)
-			.on(container, 'mousedown', stop)
+			// .on(container, 'mousedown', stop)
+			// .on(container, 'mousedown', preventDefault)
 			.on(container, 'mousewheel', stop)
 			.on(container, 'dblclick', stop)
 			.on(container, 'click', stop);
 
 		L.DomEvent
 			.on(checkboxFilters, 'change', function (ev) {
-				console.log('change', ev.target.checked)
+				// console.log('change', ev.target.checked)
 				if(ev.target.checked) {
 					map.addLayer(this);
 					L.DomUtil.removeClass(filtersCont, 'gmxHidden');
@@ -40569,29 +40928,78 @@ console.log('_rHook ____', info.zKey);
 					map.removeLayer(this);
 					L.DomUtil.addClass(filtersCont, 'gmxHidden');
 				}
-				// ();
-				// this._bboxUpdate();
-				// var state = this.getCurrentState();
-				// state.gmxLayer.repaint();
-				// this.setCommand('Left');
-				// this.setCommand('Right');
 			}, this);
+		L.DomEvent
+			.on(filterSelect, 'change', function (ev) {
+				var filter = filters[filterSelect.selectedIndex];
+console.log('filterSelect change', filter)
+				currentFilter = filter;
+				if (filter.sliders.length < 2) {
+					L.DomUtil.addClass(gmxSliderPointers[1], 'gmxHidden');
+				} else {
+					L.DomUtil.removeClass(gmxSliderPointers[1], 'gmxHidden');
+				}
+			}, this);
+
+		for (var i = 0, len = gmxSliderPointers.length; i < len; i++) {
+			var gmxSliderPointer = gmxSliderPointers[i],
+				draggable = new L.Draggable(gmxSliderPointer),
+				w = 0,
+				// curTexture = this._texture,
+				_this = this,
+				glMe = null;
+			draggable._num = i;
+			L.DomUtil.setPosition(gmxSliderPointer, L.point(100, 0));
+
+			draggable.on({
+				dragstart: function (ev) {
+					w = gmxSliderPointer.parentNode.clientWidth - gmxSliderPointer.clientWidth;
+					glMe = window.test.draw(window.test.texture(_this._canvas));
+
+					// window.test.draw(window.test.texture(_this._canvas));
+					//console.log('dragstart', ev)
+				},
+				predrag: function (ev) {
+					var pos = ev.target._newPos;
+					pos.y = 0;
+					if (pos.x < 0) {pos.x = 0;}
+					else if (pos.x > w) {pos.x = w;}
+					// console.log('dragstart', i, ev.target._newPos, w)
+				},
+				drag: function (ev) {
+					var target = ev.target,
+						num = target._num,
+						pos = target._newPos,
+						x = pos.x / 100 - 1;
+
+					currentFilter.sliders[num] = Number(x.toFixed(2));
+console.log('sliders', currentFilter.sliders)
+								// window.test.draw(this._texture);
+
+					glMe[currentFilter.name](currentFilter.sliders[0], currentFilter.sliders[1]).update()
+					//setCode(i, x);
+					//window.test.brightnessContrast(-0.13, 0.76).update()
+				// },
+				// dragend: function (ev) {
+					// console.log('dragend', ev)
+				}
+			}, this).enable();
+		}
+		if (rastersBgTilesScript) {
+			var src = rastersBgTilesScript.src,
+				scriptLoadedFrom = src.substring(0, src.lastIndexOf('/'));
+console.log('ddd', scriptLoadedFrom);
+			L.gmxUtil.requestLink(scriptLoadedFrom + '/glfx.js').then(function(ev) {
+				console.log('glfx', window.fx);
+			});
+		}
+		
 
 		return this._webGLFilters;
 	}
 });
-var rastersBgTilesScript = document.currentScript;
+
 L.rastersBgTiles = function (options) {
-	if (rastersBgTilesScript) {
-		var src = rastersBgTilesScript.src,
-			scriptLoadedFrom = src.substring(0, src.lastIndexOf('/'));
-		console.log('ddd', scriptLoadedFrom);
-		L.gmxUtil.requestLink(scriptLoadedFrom + '/glfx.js');
-		
-	}
-// var scriptSrc = document.currentScript.src;
-	// console.log('ddd', scriptSrc)
-	// var scriptLoadedFrom = scriptSrc.substring(0, scriptSrc.lastIndexOf('/')) : '';
 	return new L.RastersBgTiles(options);
 };
 
