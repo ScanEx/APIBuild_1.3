@@ -58,10 +58,6 @@ var apiFiles = [
 		css: ['dist/leaflet.contextmenu.css']
 	},
 	{
-		key: 'GMXVirtualTileLayer',
-		js: ['GmxVirtualTileLayer.js']
-	},
-	{
 		key: 'Leaflet.markercluster',
 		js: ['leaflet.markercluster-src.js'],
 		css: ['MarkerCluster.css', 'MarkerCluster.Default.css']
@@ -73,6 +69,14 @@ var apiFiles = [
 	{
 		key: 'Leaflet.heat',
 		js: ['dist/leaflet-heat.js']
+	},
+	{
+		key: 'leaflet-bing-layer',
+		js: ['leaflet-bing-layer.js']
+	},
+	{
+		key: 'GMXVirtualTileLayer',
+		js: ['GmxVirtualTileLayer.js']
 	},
 	{
 		key: 'Leaflet.rastersBgTiles',

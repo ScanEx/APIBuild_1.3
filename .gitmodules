@@ -38,3 +38,6 @@
 [submodule "external/Leaflet.rastersBgTiles"]
 	path = external/Leaflet.rastersBgTiles
 	url = git@github.com:ScanEx/Leaflet.rastersBgTiles.git
+[submodule "external/leaflet-bing-layer"]
+	path = external/leaflet-bing-layer
+	url = git@github.com:ScanEx/leaflet-bing-layer.git
