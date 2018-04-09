@@ -1030,6 +1030,9 @@
     background-color: #fff;
     position: absolute;
 }
+.leaflet-control-zoom.leaflet-bar.gmxzoom-container.leaflet-control  a {
+    color: #606060;
+}
 .gmxzoom-container .leaflet-control-zoom-out {
     border-top: 1px solid #ccc;
 }
@@ -1146,7 +1149,7 @@
 .leaflet-gmx-loaderStatus {
     position: absolute;
     left: 5px;
-    top: 117px;
+    top: 143px;
     text-align: center;
     padding: 4px;
     border-radius: 4px;
