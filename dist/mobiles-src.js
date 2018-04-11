@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-9 14:39:01';
-var buildUUID = '38f40ecd1521458293ffb9cc6e93dde7';
+var buildDate = '2018-4-11 12:43:20';
+var buildUUID = '3f7d9a1c53fd46b081bdf4ddf716b1fb';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20081,6 +20081,9 @@ var gmxMapManager = {
 								_rawTree: json.res,
 								_nodes: {}
 							};
+							if (L.gmx.mapPropertiesHook) {
+								L.gmx.mapPropertiesHook(json.res);
+							}
 							resolve(json.res);
 						} else {
 							reject(json);
@@ -20098,6 +20101,9 @@ var gmxMapManager = {
 									_rawTree: json.Result,
 									_nodes: {}
 								};
+								if (L.gmx.mapPropertiesHook) {
+									L.gmx.mapPropertiesHook(json.Result);
+								}
 								resolve(json.Result);
 							} else {
 								reject(json);
@@ -26641,6 +26647,7 @@ var getRequestParams = function(layer) {
 			dm = layer;
 			prop = dm.options;
 		} else {
+			if (!layer._gmx) {return hosts;}
 			prop = layer._gmx.properties;
 			dm = layer._gmx.dataManager;
 			gmx = layer._gmx;
