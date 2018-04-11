@@ -1033,6 +1033,10 @@
 .leaflet-control-zoom.leaflet-bar.gmxzoom-container.leaflet-control  a {
     color: #606060;
 }
+.leaflet-control-zoom.leaflet-bar.gmxzoom-container.leaflet-control  a.leaflet-disabled {
+    color: #a0a0a0;
+}
+
 .gmxzoom-container .leaflet-control-zoom-out {
     border-top: 1px solid #ccc;
 }

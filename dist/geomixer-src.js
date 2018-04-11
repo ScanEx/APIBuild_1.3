@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-11 12:43:26';
-var buildUUID = '3f7d9a1c53fd46b081bdf4ddf716b1fb';
+var buildDate = '2018-4-11 13:08:19';
+var buildUUID = '3948e60e570c42ebbd5483a00ce0da4d';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -26639,7 +26639,7 @@ var getParams = function(prop, dm, gmx) {
 var getRequestParams = function(layer) {
     var hosts = {},
         prop, hostName, dm, gmx;
-    if (layer) {
+    if (layer && layer._gmx) {
         if (layer.target instanceof L.gmx.DataManager) {
 			layer = layer.target;
 		}
@@ -26647,7 +26647,7 @@ var getRequestParams = function(layer) {
 			dm = layer;
 			prop = dm.options;
 		} else {
-			if (!layer._gmx) {return hosts;}
+			// if (!layer._gmx) {return hosts;}
 			prop = layer._gmx.properties;
 			dm = layer._gmx.dataManager;
 			gmx = layer._gmx;
@@ -35537,54 +35537,54 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 eng: 'Empty',
                 layers: []
             },
+            sputnik: {
+                rus: 'Спутник ру',
+                eng: 'Sputnik RU',
+                icon: iconPrefix + 'basemap_sputnik_ru.png',
+                layers: [
+                    L.tileLayer(protocol + '//tilessputnik.ru/{z}/{x}/{y}.png' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                        maxZoom: 22,
+                        maxNativeZoom: 18,
+                        attribution: '<a href="http://maps.sputnik.ru">Спутник</a> © ' + (lang === 'rus' ? 'Ростелеком' : 'Rostelecom') + ' | © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    })
+                ]
+            },
             // sputnik: {
-                // rus: 'Спутник ру',
-                // eng: 'Sputnik RU',
+                // rus: 'Карта-OSM',
+                // eng: 'Map-OSM',
                 // icon: iconPrefix + 'basemap_sputnik_ru.png',
                 // layers: [
-                    // L.tileLayer(protocol + '//tilessputnik.ru/{z}/{x}/{y}.png' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                    // L.tileLayer(protocol + '//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
                         // maxZoom: 22,
                         // maxNativeZoom: 18,
-                        // attribution: '<a href="http://maps.sputnik.ru">Спутник</a> © ' + (lang === 'rus' ? 'Ростелеком' : 'Rostelecom') + ' | © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        // attribution: '© <a href="http://osm.org">OpenStreetMap contributors</a>'
                     // })
                 // ]
             // },
-            sputnik: {
-                rus: 'Карта-OSM',
-                eng: 'Map-OSM',
-                icon: iconPrefix + 'basemap_sputnik_ru.png',
-                layers: [
-                    L.tileLayer(protocol + '//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
-                        maxZoom: 22,
-                        maxNativeZoom: 18,
-                        attribution: '© <a href="http://osm.org">OpenStreetMap contributors</a>'
-                    })
-                ]
-            },
-            here: {
-                rus: 'Карта (HERE)',
-                eng: 'Map (HERE)',
-                icon: iconPrefix + 'here_map.png',
-                layers: [
-                    L.tileLayer(protocol + '//1.base.maps.api.here.com/maptile/2.1/maptile/newest/normal.day/{z}/{x}/{y}/256/png8?app_id=GDNSU8Ub4xAC1L4bJYTR&app_code=9lYO3KbPKxHwrhR7-VCSaA&lg=' + (lang === 'rus' ? 'rus' : 'eng'), {
-                        maxZoom: 22,
-                        maxNativeZoom: 22,
-                        attribution: '<a href="//here.com" target="_blank">© HERE</a>'
-                    })
-                ]
-            },
-            here_hyb: {
-                rus: 'Гибрид (HERE)',
-                eng: 'Hybrid (HERE)',
-                icon: iconPrefix + 'here_hyb.png',
-                layers: [
-                    L.tileLayer(protocol + '//1.aerial.maps.api.here.com/maptile/2.1/maptile/newest/hybrid.day/{z}/{x}/{y}/256/png8?app_id=GDNSU8Ub4xAC1L4bJYTR&app_code=9lYO3KbPKxHwrhR7-VCSaA&lg=' + (lang === 'rus' ? 'rus' : 'eng'), {
-                        maxZoom: 22,
-                        maxNativeZoom: 22,
-                        attribution: '<a href="//here.com" target="_blank">© HERE</a>'
-                    })
-                ]
-            },
+            // here: {
+                // rus: 'Карта (HERE)',
+                // eng: 'Map (HERE)',
+                // icon: iconPrefix + 'here_map.png',
+                // layers: [
+                    // L.tileLayer(protocol + '//1.base.maps.api.here.com/maptile/2.1/maptile/newest/normal.day/{z}/{x}/{y}/256/png8?app_id=GDNSU8Ub4xAC1L4bJYTR&app_code=9lYO3KbPKxHwrhR7-VCSaA&lg=' + (lang === 'rus' ? 'rus' : 'eng'), {
+                        // maxZoom: 22,
+                        // maxNativeZoom: 22,
+                        // attribution: '<a href="//here.com" target="_blank">© HERE</a>'
+                    // })
+                // ]
+            // },
+            // here_hyb: {
+                // rus: 'Гибрид (HERE)',
+                // eng: 'Hybrid (HERE)',
+                // icon: iconPrefix + 'here_hyb.png',
+                // layers: [
+                    // L.tileLayer(protocol + '//1.aerial.maps.api.here.com/maptile/2.1/maptile/newest/hybrid.day/{z}/{x}/{y}/256/png8?app_id=GDNSU8Ub4xAC1L4bJYTR&app_code=9lYO3KbPKxHwrhR7-VCSaA&lg=' + (lang === 'rus' ? 'rus' : 'eng'), {
+                        // maxZoom: 22,
+                        // maxNativeZoom: 22,
+                        // attribution: '<a href="//here.com" target="_blank">© HERE</a>'
+                    // })
+                // ]
+            // },
             mapbox: {
                 rus: 'MapBox',
                 eng: 'MapBox',
@@ -40616,13 +40616,25 @@ L.gmx.addLayerClass('WMS', GmxVirtualWMSLayer);
 			culture = meta['culture'] && meta['culture'].Value,
 			style = meta['style'] && meta['style'].Value,
 			options = {
-				bingMapsKey: bingMapsKey ||'AuhiCJHlGzhg93IqUH_oCpl_-ZUrIE6SPftlyGYUvr9Amx5nzA-WqGcPquyFZl4L',
+				bingMapsKey: bingMapsKey || 'Atr94LlesFUFHF7carCFRKMYBV3erkaYJVkkm7XTabk7p7ima_If38WMOqem2IdS',
 				imagerySet: imagerySet || '',
 				culture: culture || '',
 				style: style || ''
 			};
 
 		if (props.Copyright) { options.attribution = props.Copyright; }
+		if (meta.minZoom) {
+			options.minZoom = meta.minZoom.Value;
+		}
+		if (meta.maxZoom) {
+			options.maxZoom = meta.maxZoom.Value;
+		}
+		if (meta.minNativeZoom) {
+			options.minNativeZoom = meta.minNativeZoom.Value;
+		}
+		if (meta.maxNativeZoom) {
+			options.maxNativeZoom = meta.maxNativeZoom.Value;
+		}
 
 		var layer = L.tileLayer.bing(options);
 
