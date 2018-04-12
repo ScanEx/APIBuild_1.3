@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-11 13:08:19';
-var buildUUID = '3948e60e570c42ebbd5483a00ce0da4d';
+var buildDate = '2018-4-12 17:24:54';
+var buildUUID = '3954247d28f547ec95e0195abbf1e54b';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -19410,7 +19410,8 @@ L.gmx.Deferred = Deferred;
 
 (function() {
 'use strict';
-L.gmxUtil.createWorker(L.gmxUtil.apiLoadedFrom() + '/ImageBitmapLoader-worker.js')
+L.gmx = L.gmx || {};
+L.gmx.workerPromise = L.gmxUtil.createWorker(L.gmxUtil.apiLoadedFrom() + '/ImageBitmapLoader-worker.js')
 .then(function(worker) {
 	var ImageBitmapLoader = function() {
 		this.jobs = {};
@@ -24089,6 +24090,7 @@ L.Map.addInitHook(function () {
 	this.options.srs = this.options.srs || 3857;
 	this.options.skipTiles = this.options.skipTiles || 'All';
 
+	L.gmx.leafletMap = this;
 	L.gmx._zoomLevelsCache = {};
 	// L.gmx._zoomAnimCache = {};
 
@@ -35707,6 +35709,38 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                     })
                 ]
             },
+            // 'yandex#satellite': {
+                // rus: 'Снимки (Yandex)',
+                // eng: 'Satellite (Yandex)',
+                // icon: iconPrefix + 'basemap_satellite.png',
+                // layers: [
+                    // tileLayerMercator(protocol + '//sat01.maps.yandex.net/tiles?l=sat&v=3.363.0&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
+					// {
+						// gmxCopyright: [{
+							// attribution: copyrights.yandex
+						// }]
+                    // })
+                // ]
+            // },
+            // 'yandex#hybrid': {
+                // rus: 'Гибрид (Yandex)',
+                // eng: 'Hybrid (Yandex)',
+                // icon: iconPrefix + 'basemap_satellite.png',
+                // layers: [
+                    // tileLayerMercator(protocol + '//sat03.maps.yandex.net/tiles?l=sat&v=3.363.0&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
+					// {
+						// gmxCopyright: [{
+							// attribution: copyrights.yandex
+						// }]
+                    // }),
+                    // tileLayerMercator(protocol + '//vec01.maps.yandex.net/tiles?l=skl&v=18.01.10-2&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
+					// {
+						// gmxCopyright: [{
+							// attribution: copyrights.yandex
+						// }]
+                    // })
+                // ]
+			// },
             'yandex#map': {
                 rus: 'Карта (Yandex)',
                 eng: 'Map (Yandex)',
@@ -35719,39 +35753,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 						}]
                     })
                 ]
-            },
-            'yandex#satellite': {
-                rus: 'Снимки (Yandex)',
-                eng: 'Satellite (Yandex)',
-                icon: iconPrefix + 'basemap_satellite.png',
-                layers: [
-                    tileLayerMercator(protocol + '//sat01.maps.yandex.net/tiles?l=sat&v=3.363.0&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
-					{
-						gmxCopyright: [{
-							attribution: copyrights.yandex
-						}]
-                    })
-                ]
-            },
-            'yandex#hybrid': {
-                rus: 'Гибрид (Yandex)',
-                eng: 'Hybrid (Yandex)',
-                icon: iconPrefix + 'basemap_satellite.png',
-                layers: [
-                    tileLayerMercator(protocol + '//sat03.maps.yandex.net/tiles?l=sat&v=3.363.0&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
-					{
-						gmxCopyright: [{
-							attribution: copyrights.yandex
-						}]
-                    }),
-                    tileLayerMercator(protocol + '//vec01.maps.yandex.net/tiles?l=skl&v=18.01.10-2&x={x}&y={y}&z={z}&scale=1&lang=' + (lang === 'rus' ? 'ru_RU' : 'en_US'),
-					{
-						gmxCopyright: [{
-							attribution: copyrights.yandex
-						}]
-                    })
-                ]
-            }
+			}
         };
 		baseLayers.relief = {
 			rus: 'Рельеф RuMap',

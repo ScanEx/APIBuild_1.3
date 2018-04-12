@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-11 13:08:14';
-var buildUUID = '3948e60e570c42ebbd5483a00ce0da4d';
+var buildDate = '2018-4-12 17:24:49';
+var buildUUID = '3954247d28f547ec95e0195abbf1e54b';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -19410,7 +19410,8 @@ L.gmx.Deferred = Deferred;
 
 (function() {
 'use strict';
-L.gmxUtil.createWorker(L.gmxUtil.apiLoadedFrom() + '/ImageBitmapLoader-worker.js')
+L.gmx = L.gmx || {};
+L.gmx.workerPromise = L.gmxUtil.createWorker(L.gmxUtil.apiLoadedFrom() + '/ImageBitmapLoader-worker.js')
 .then(function(worker) {
 	var ImageBitmapLoader = function() {
 		this.jobs = {};
@@ -24089,6 +24090,7 @@ L.Map.addInitHook(function () {
 	this.options.srs = this.options.srs || 3857;
 	this.options.skipTiles = this.options.skipTiles || 'All';
 
+	L.gmx.leafletMap = this;
 	L.gmx._zoomLevelsCache = {};
 	// L.gmx._zoomAnimCache = {};
 
