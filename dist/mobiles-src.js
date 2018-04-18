@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-16 09:16:39';
-var buildUUID = '449e78b233224151b6ebec1f796a7c58';
+var buildDate = '2018-4-18 10:31:37';
+var buildUUID = 'c44d50834d97485887bc1240eb415fc6';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20050,7 +20050,7 @@ var gmxMapManager = {
 
 	loadMapProperties: function(options) {
         var maps = this._maps,
-			serverHost = options.hostName || options.serverHost,
+			serverHost = options.hostName || options.serverHost || 'maps.kosmosnimki.ru',
 			mapName = options.mapName;
 
         if (!maps[serverHost] || !maps[serverHost][mapName]) {
