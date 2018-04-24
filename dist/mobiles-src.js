@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-23 16:32:42';
-var buildUUID = '34cf9920ef5444619a311117f94f8d40';
+var buildDate = '2018-4-24 10:50:44';
+var buildUUID = '98fa97fb7fb14a53ba74085a2c1dcbcb';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -23193,7 +23193,8 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 					} else if (!gmx.labelsLayer) {
 						this._map._labelsLayer.remove(this);
 					}
-					this.redraw();
+					// this.redraw();
+					this.repaint();
 					this._chkTiles();
 				}
 			},
@@ -23250,8 +23251,9 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 				gmx.dataManager.fire('moveend');
 
 				this._chkTiles();
+				L.gmx.layersVersion.add(this);
 			}
-			this._addLayerVersion();
+			// this._addLayerVersion();
 			this.fire('add');
 		}.bind(this));
    },
@@ -23371,14 +23373,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
         this.options.minZoom = gmx.styleManager.minZoom;
         this.options.maxZoom = gmx.styleManager.maxZoom;
 
-        gmx.dataManager.on('observeractivate', function() {
-            if (gmx.dataManager.getActiveObserversCount()) {
-				this._addLayerVersion();
-                //L.gmx.layersVersion.add(this);
-            } else {
-                L.gmx.layersVersion.remove(this);
-            }
-        }, this);
+        gmx.dataManager.on('observeractivate', this._chkNeedLayerVersion, this);
 
         if (gmx.properties.type === 'Vector' && !('chkUpdate' in this.options)) {
             this.options.chkUpdate = true; //Check updates for vector layers by default
@@ -23408,13 +23403,25 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
         return this;
     },
 
+    _chkNeedLayerVersion: function () {
+		if (this._chkNeedLayerVersionTimer) { clearTimeout(this._chkNeedLayerVersionTimer); }
+		this._chkNeedLayerVersionTimer = setTimeout(function() {
+				if (this._gmx.dataManager.getActiveObserversCount()) {
+					L.gmx.layersVersion.add(this);
+				} else {
+					L.gmx.layersVersion.remove(this);
+				}
+			}.bind(this)
+		, 100);
+    },
+/*
     _addLayerVersion: function () {
 		// if (this._onVersionTimer) { cancelIdleCallback(this._onVersionTimer); }
 		// this._onVersionTimer = requestIdleCallback(L.gmx.layersVersion.add.bind(L.gmx.layersVersion, this), {timeout: 0});
 		if (this._onVersionTimer) { clearTimeout(this._onVersionTimer); }
 		this._onVersionTimer = setTimeout(L.gmx.layersVersion.add.bind(L.gmx.layersVersion, this), 0);
     },
-
+*/
     getDataManager: function () {
 		return this._gmx.dataManager;
     },
