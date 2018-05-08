@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-4-24 10:50:44';
-var buildUUID = '98fa97fb7fb14a53ba74085a2c1dcbcb';
+var buildDate = '2018-5-8 11:19:18';
+var buildUUID = '14e51d805b8c47948dd81f0ded79519f';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20057,7 +20057,7 @@ var gmxMapManager = {
 		gmxMapManager.iterateNode(res, function(it) {	// TODO: удалить после переделки стилей на сервере
 			if (it.type === 'layer') {
 				var props = it.content.properties;
-				if (props.styles) {
+				if (props.styles && !props.gmxStyles) {
 					it.content.properties.gmxStyles = L.gmx.StyleManager.decodeOldStyles(props);
 				}
 			}
@@ -25657,10 +25657,10 @@ StyleManager.prototype = {
             out.rotate = rotateRes || 0;
         }
         if ('iconColor' in pt) {
-            out.iconColor = 'iconColorFunction' in pt ? pt.iconColorFunction(prop, indexes) : pt.iconColor;
+            out.iconColor = pt.iconColorFunction ? pt.iconColorFunction(prop, indexes) : pt.iconColor;
         }
         if ('iconScale' in pt) {
-            out.iconScale = 'scaleFunction' in pt ? (pt.scaleFunction ? pt.scaleFunction(prop, indexes) : 1) : pt.iconScale;
+            out.iconScale = pt.scaleFunction ? pt.scaleFunction(prop, indexes) : (pt.iconScale || 1);
         }
         if (type === 'image') {
             out.type = type;
@@ -25718,7 +25718,7 @@ StyleManager.prototype = {
                 type = 'polygon';
             }
             if (pt.iconSize) {
-                var iconSize = ('sizeFunction' in pt ? pt.sizeFunction(prop, indexes) : pt.iconSize);
+                var iconSize = (pt.sizeFunction ? pt.sizeFunction(prop, indexes) : pt.iconSize);
                 out.sx = out.sy = iconSize;
                 // iconSize += pt.weight ? pt.weight : 0;
                 out.iconSize = iconSize;
@@ -25728,16 +25728,14 @@ StyleManager.prototype = {
                 out.maxSize = iconSize;
             }
             out.stroke = true;
-            if ('colorFunction' in pt || 'opacityFunction' in pt) {
-                color = 'colorFunction' in pt ? pt.colorFunction(prop, indexes) : color;
-                opacity = 'opacityFunction' in pt ? pt.opacityFunction(prop, indexes) : opacity;
-            }
+			color = pt.colorFunction ? pt.colorFunction(prop, indexes) : color;
+			opacity = pt.opacityFunction ? pt.opacityFunction(prop, indexes) : opacity;
             out.strokeStyle = gmxAPIutils.dec2color(color, opacity);
             out.lineWidth = 'weight' in pt ? pt.weight : 1;
         }
 
         if ('iconScale' in pt) {
-            out.iconScale = 'scaleFunction' in pt ? (pt.scaleFunction ? pt.scaleFunction(prop, indexes) : 1) : pt.iconScale;
+            out.iconScale = pt.scaleFunction ? (pt.scaleFunction(prop, indexes) || 1) : pt.iconScale;
         }
         if ('iconAnchor' in pt) {
             out.iconAnchor = pt.iconAnchor;
@@ -25756,8 +25754,8 @@ StyleManager.prototype = {
                 out.fillStyle = gmxAPIutils.dec2color(fcDec, 1);
             }
             if ('fillColorFunction' in pt || 'fillOpacityFunction' in pt) {
-                color = ('fillColorFunction' in pt ? pt.fillColorFunction(prop, indexes) : fc || 255);
-                opacity = ('fillOpacityFunction' in pt ? pt.fillOpacityFunction(prop, indexes) : fop || 1);
+                color = pt.fillColorFunction ? pt.fillColorFunction(prop, indexes) : (fc || 255);
+                opacity = pt.fillOpacityFunction ? pt.fillOpacityFunction(prop, indexes) : (fop || 1);
                 out.fillStyle = gmxAPIutils.dec2color(color, opacity);
             } else if ('fillOpacity' in pt && 'fillColor' in pt) {
                 out.fillStyle = gmxAPIutils.dec2color(fcDec, fop);
@@ -25793,7 +25791,7 @@ StyleManager.prototype = {
 StyleManager.MAX_STYLE_SIZE = 256;
 //StyleManager.DEFAULT_STYLE = {outline: {color: 255, thickness: 1}, marker: {size: 8, circle: true}};
 StyleManager.DEFAULT_STYLE = {outline: {color: 255, thickness: 1}, marker: {size: 8}};
-StyleManager.DEFAULT_KEYS = ['MinZoom', 'MaxZoom', 'Balloon', 'BalloonEnable', 'DisableBalloonOnMouseMove', 'DisableBalloonOnClick'];
+StyleManager.DEFAULT_KEYS = ['Name', 'MinZoom', 'MaxZoom', 'Balloon', 'BalloonEnable', 'DisableBalloonOnMouseMove', 'DisableBalloonOnClick'];
 StyleManager.DEFAULT_ICONPATH = [0, 10, 5, -10, -5, -10, 0, 10];  // [TL.x, TL.y, BR.x, BR.y, BL.x, BL.y, TL.x, TL.y]
 
 StyleManager.parsePattern = function(pattern) {
@@ -26805,7 +26803,7 @@ var getParams = function(prop, dm, gmx) {
         Name: prop.name,
         Version: isExistsTiles(prop) ? prop.LayerVersion : -1
     };
-	if (dm && (prop.UseTiles === false || gmx.skipTiles === 'NotVisible' || gmx.needBbox)) {
+	if (dm && (prop.UseTiles === false || gmx.skipTiles === 'NotVisible' || gmx.needBbox || gmx.options.needBbox)) {
 		var maxDateInterval = dm.getMaxDateInterval(),
 			beginDate = maxDateInterval.beginDate || gmx.beginDate,
 			endDate = maxDateInterval.endDate || gmx.endDate;
