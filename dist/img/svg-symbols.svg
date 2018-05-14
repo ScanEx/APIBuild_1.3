@@ -11,6 +11,9 @@
     <symbol id="arrow-down-01" viewbox="0 0 24 24">
       <title>arrow-down</title><path d="M4.3,9.2l7,7a1,1,0,0,0,1.41,0l7-7A1,1,0,0,0,19,7.5H5A1,1,0,0,0,4.3,9.2Z"/>
     </symbol>
+    <symbol id="arrow-down-thin" viewbox="0 0 16 16">
+      <title>arrow-down</title><polygon points="8 11.75 2 5.79 3.56 4.25 8 8.66 12.44 4.25 14 5.79 8 11.75"/>
+    </symbol>
     <symbol id="arrow-down" viewbox="0 0 24 24">
       <title>arrow-down</title><polyline points="20 15 20 20 15 20"/>
     </symbol>
@@ -80,6 +83,13 @@
     <symbol id="hide" viewbox="0 0 24 24">
       <title>fullscreen</title><path d="M6.29,14.29H4V20H9.71V17.71H6.29V14.29ZM4,9.71H6.29V6.29H9.71V4H4V9.71Zm13.71,8H14.29V20H20V14.29H17.71v3.43ZM14.29,4V6.29h3.43V9.71H20V4H14.29Z"/>
     </symbol>
+    <symbol id="info-circle-i" viewbox="0 0 16 16">
+      <title>alert-circle-i</title><path d="M8,0a8,8,0,1,0,8,8A8,8,0,0,0,8,0ZM9,12H7V7H9ZM8,6A.94.94,0,0,1,7,5,.94.94,0,0,1,8,4,.94.94,0,0,1,9,5,.94.94,0,0,1,8,6Z"/>
+    </symbol>
+    <symbol id="info-i" viewbox="0 0 16 16">
+        <title>round-e-info</title> <path d="M8,0C3.6,0,0,3.6,0,8s3.6,8,8,8s8-3.6,8-8S12.4,0,8,0z M8,14c-3.3,0-6-2.7-6-6s2.7-6,6-6s6,2.7,6,6
+	S11.3,14,8,14z"/> <rect x="7" y="7" width="2" height="5"/> <circle cx="8" cy="5" r="1"/> 
+    </symbol>
     <symbol id="info-zone" viewbox="0 0 24 24">
       <title>info</title><path d="M17.44,5.6H14.19a2.3,2.3,0,0,0-4.39,0H6.56A1.58,1.58,0,0,0,5,7.2V18.4A1.58,1.58,0,0,0,6.56,20H17.44A1.58,1.58,0,0,0,19,18.4V7.2A1.58,1.58,0,0,0,17.44,5.6ZM12,5.6a0.8,0.8,0,1,1-.78.8A0.79,0.79,0,0,1,12,5.6ZM13.56,16.8H8.11V15.2h5.44v1.6Zm2.33-3.2H8.11V12h7.78v1.6Zm0-3.2H8.11V8.8h7.78v1.6Z"/>
     </symbol>
@@ -107,6 +117,9 @@
     <symbol id="rectangle" viewbox="0 0 24 24">
       <title>rectangle</title><rect x="8" y="8" width="8" height="1"/><rect x="8" y="15" width="8" height="1"/><rect x="18" y="11" width="1" height="2"/><rect x="5" y="11" width="1" height="2"/><path d="M5.5,8a0.5,0.5,0,1,1-.5.5A0.5,0.5,0,0,1,5.5,8m0-1A1.5,1.5,0,1,0,7,8.5,1.5,1.5,0,0,0,5.5,7h0Z"/><path d="M5.5,15a0.5,0.5,0,1,1-.5.5A0.5,0.5,0,0,1,5.5,15m0-1A1.5,1.5,0,1,0,7,15.5,1.5,1.5,0,0,0,5.5,14h0Z"/><path d="M18.5,8a0.5,0.5,0,1,1-.5.5A0.5,0.5,0,0,1,18.5,8m0-1A1.5,1.5,0,1,0,20,8.5,1.5,1.5,0,0,0,18.5,7h0Z"/><path d="M18.5,15a0.5,0.5,0,1,1-.5.5,0.5,0.5,0,0,1,.5-0.5m0-1A1.5,1.5,0,1,0,20,15.5,1.5,1.5,0,0,0,18.5,14h0Z"/>
     </symbol>
+    <symbol id="s-tree" viewbox="0 0 16 16">
+        <g> <polygon points="8,12.6 2.8,9.1 1,10.3 8,15 15,10.3 13.2,9.1 	"/> <polygon points="1,5.7 8,1 15,5.7 8,10.3 	"/> </g> 
+    </symbol>
     <symbol id="savemap" viewbox="0 0 24 24">
       <title>save-map</title><path d="M16.44,4H5.78A1.78,1.78,0,0,0,4,5.78V18.22A1.78,1.78,0,0,0,5.78,20H18.22A1.78,1.78,0,0,0,20,18.22V7.56ZM12,18.22a2.67,2.67,0,1,1,2.67-2.67A2.66,2.66,0,0,1,12,18.22Zm2.67-8.89H5.78V5.78h8.89V9.33Z"/>
     </symbol>
@@ -118,6 +131,9 @@
     </symbol>
     <symbol id="shift" viewbox="0 0 24 24">
       <title>shift</title><path d="M10.69,18.12L16.82,12,10.69,5.88,12.58,4l7,7a1.45,1.45,0,0,1,0,2.06l-7,7Z"/><path d="M4,18.12L10.13,12,4,5.88,5.89,4l7,7a1.45,1.45,0,0,1,0,2.06l-7,7Z"/>
+    </symbol>
+    <symbol id="style-group" viewbox="0 0 16 16">
+      <title>path-minus</title><path d="M10.63,15V10.63H15V1H5.38V5.38H1V15ZM2.75,7.13H8.88v6.13H2.75Z"/>
     </symbol>
     <symbol id="tl-arrow-down" viewbox="0 0 14 14">
       <title>arrow-down</title><polygon points="2 5 7 10 12 5 2 5"/>
