@@ -1,6 +1,6 @@
-# APIBuild_1.2
+# APIBuild_1.3
 
-API builder for Leaflet version 1.2 
+API builder for Leaflet version 1.3 
 
 # Пример сборки плагинов Геомиксера
 
@@ -34,4 +34,4 @@ images - папка иконок Leaflet-1.2
 ```
 
 Сборки доступны по адресу:
-http://www.kosmosnimki.ru/lib/geomixer1.2/
+http://www.kosmosnimki.ru/lib/geomixer_1.3/
