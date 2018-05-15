@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-5-14 09:43:49';
-var buildUUID = '71d26d9aa3f54298a3d34d3640ab9938';
+var buildDate = '2018-5-15 11:46:50';
+var buildUUID = '95dddabec1564be3bbba892d7638f920';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -36678,6 +36678,8 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		clusterPane: L.Marker.prototype.options.pane,
 
 		spiderfyOnMaxZoom: true,
+		// split zoomToBounds & spiderfy logic
+		spiderfyZoom: null,
 		showCoverageOnHover: true,
 		zoomToBoundsOnClick: true,
 		singleMarkerMode: false,
@@ -37166,7 +37168,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 	//Overrides LayerGroup.getLayer, WARNING: Really bad performance
 	getLayer: function (id) {
 		var result = null;
-		
+
 		id = parseInt(id, 10);
 
 		this.eachLayer(function (l) {
@@ -37380,7 +37382,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		}
 		delete e.target.__dragStart;
 	},
-	
+
 
 	//Internal function for removing a marker from everything.
 	//dontUpdateMap: set to true if you will handle updating the map manually (for bulk functions)
@@ -37512,9 +37514,11 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 			bottomCluster = bottomCluster._childClusters[0];
 		}
 
-		if (bottomCluster._zoom === this._maxZoom &&
+		if ((bottomCluster._zoom === this._maxZoom &&
 			bottomCluster._childCount === cluster._childCount &&
-			this.options.spiderfyOnMaxZoom) {
+			this.options.spiderfyOnMaxZoom)
+			||
+			(this.options.spiderfyZoom && cluster._zoom >= this.options.spiderfyZoom)) {
 
 			// All child markers are contained in a single cluster from this._maxZoom to this cluster.
 			cluster.spiderfy();
@@ -37594,7 +37598,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 			minZoom = Math.floor(this._map.getMinZoom()),
 			radius = this.options.maxClusterRadius,
 			radiusFn = radius;
-	
+
 		//If we just set maxClusterRadius to a single number, we need to create
 		//a simple function to return that number. Otherwise, we just have to
 		//use the function we've passed in.
@@ -37608,7 +37612,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		this._maxZoom = maxZoom;
 		this._gridClusters = {};
 		this._gridUnclustered = {};
-	
+
 		//Set up DistanceGrids for each zoom
 		for (var zoom = maxZoom; zoom >= minZoom; zoom--) {
 			this._gridClusters[zoom] = new L.DistanceGrid(radiusFn(zoom));
@@ -38442,26 +38446,26 @@ L.MarkerCluster = L.Marker.extend({
 
 /*
 * Extends L.Marker to include two extra methods: clusterHide and clusterShow.
-* 
+*
 * They work as setOpacity(0) and setOpacity(1) respectively, but
 * they will remember the marker's opacity when hiding and showing it again.
-* 
+*
 */
 
 
 L.Marker.include({
-	
+
 	clusterHide: function () {
 		this.options.opacityWhenUnclustered = this.options.opacity || 1;
 		return this.setOpacity(0);
 	},
-	
+
 	clusterShow: function () {
 		var ret = this.setOpacity(this.options.opacity || this.options.opacityWhenUnclustered);
 		delete this.options.opacityWhenUnclustered;
 		return ret;
 	}
-	
+
 });
 
 
@@ -38722,7 +38726,7 @@ Retrieved from: http://en.literateprograms.org/Quickhull_(Javascript)?oldid=1843
 					minLng = pt.lng;
 				}
 			}
-			
+
 			if (minLat !== maxLat) {
 				minPt = minLatPt;
 				maxPt = maxLatPt;
@@ -38987,7 +38991,7 @@ L.MarkerCluster.include({
 			if (m.clusterHide) {
 				m.clusterHide();
 			}
-			
+
 			// Vectors just get immediately added
 			fg.addLayer(m);
 
@@ -39007,7 +39011,7 @@ L.MarkerCluster.include({
 			//Move marker to new position
 			m._preSpiderfyLatlng = m._latlng;
 			m.setLatLng(newPos);
-			
+
 			if (m.clusterShow) {
 				m.clusterShow();
 			}
@@ -39338,6 +39342,7 @@ L.Marker.include({
 
 
 }(window, document));
+
 
 // Packaging/modules magic dance.
 (function (factory) {
