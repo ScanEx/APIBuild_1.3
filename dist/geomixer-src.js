@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-5-15 11:46:50';
-var buildUUID = '95dddabec1564be3bbba892d7638f920';
+var buildDate = '2018-5-21 09:37:29';
+var buildUUID = 'f4f1b11ef34347e6ab59b9086db4fc94';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -27704,6 +27704,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 					count = arrTxtWidth.length || 1,
                     width = label.width,
                     width2 = width / 2,
+                    labelFontFamily = style.labelFontFamily || 'Arial',
                     size = style.labelFontSize || 12,
                     size2 = size / 2,
                     center = options.center,
@@ -27744,7 +27745,8 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 
                     if (!options.labelStyle) {
                         options.labelStyle = {
-                            font: size + 'px "Arial"',
+                            font: size + 'px "' + labelFontFamily + '"',
+                            //font: size + 'px "Arial"',
                             fillStyle: gmxAPIutils.dec2color(style.labelColor || 0, 1),
                             shadowBlur: 4
                         };
@@ -29994,7 +29996,7 @@ L.gmx.loadLayer = function(mapID, layerID, options) {
 		layerParams.hostName = hostName;
 
 		gmxMapManager.loadMapProperties({
-				srs: options.srs,
+				srs: options.srs || '3857',
 				hostName: hostName,
 				apiKey: options.apiKey,
 				mapName: mapID,
@@ -30037,7 +30039,7 @@ L.gmx.loadLayer = function(mapID, layerID, options) {
 L.gmx.loadLayers = function(layers, globalOptions) {
 	return new Promise(function(resolve) {
 		Promise.all(layers.map(function(layerInfo) {
-			var options = L.extend({}, globalOptions, layerInfo.options);
+			var options = L.extend({}, globalOptions, layerInfo);
 			return L.gmx.loadLayer(layerInfo.mapID, layerInfo.layerID, options);
 		}))
 		.then(function(res) {
