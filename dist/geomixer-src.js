@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-5-21 09:37:29';
-var buildUUID = 'f4f1b11ef34347e6ab59b9086db4fc94';
+var buildDate = '2018-5-31 15:32:33';
+var buildUUID = '4302ad506215429293208439b95557cb';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -16187,6 +16187,9 @@ var gmxAPIutils = {
         ptx1.drawImage(canvas, 0, 0, ww, hh);
         return {'notFunc': notFunc, 'canvas': canvas1};
     },
+    setSVGIcon: function(id) {
+		return '<svg role="img" class="svgIcon"><use xlink:href="#' + id + '" href="#' + id + '"></use></svg>';
+    },
 
     getSVGIcon: function (options) {
         var svg = '<svg xmlns="' + L.Path.SVG_NS + '" xmlns:xlink="http://www.w3.org/1999/xlink"',
@@ -18518,6 +18521,7 @@ L.extend(L.gmxUtil, {
     prettifyArea: gmxAPIutils.prettifyArea,
     geoArea: gmxAPIutils.geoArea,
     parseBalloonTemplate: gmxAPIutils.parseBalloonTemplate,
+    setSVGIcon: gmxAPIutils.setSVGIcon,
     getSVGIcon: gmxAPIutils.getSVGIcon,
     getCoordinatesString: gmxAPIutils.getCoordinatesString,
     getGeometriesSummary: gmxAPIutils.getGeometriesSummary,
@@ -26762,11 +26766,10 @@ L.gmx.VectorLayer.include({
                     }
                     this._map.doubleClickZoom.disable();
                     return idr;
-                }
+                } else if (this._map) {
+					this._map.doubleClickZoom.enable();
+				}
             }
-        }
-        if (this._map) {
-            this._map.doubleClickZoom.enable();
         }
         return 0;
     },
@@ -29220,15 +29223,28 @@ L.gmx.ExternalLayer = L.Class.extend({
                         protoOffset[1] - style.iconAnchor[1] + style.sy / 2
                     ];
                 }
+				if (this.parentLayer._balloonHook) {
+					for (var key in this.parentLayer._balloonHook) {
+						properties[key] = L.gmxUtil.parseTemplate(this.parentLayer._balloonHook[key].resStr, properties);
+					}
+				}
+				var content = L.gmxUtil.parseBalloonTemplate(balloonData.templateBalloon, {
+					properties: properties,
+					tileAttributeTypes: gmx.tileAttributeTypes,
+					unitOptions: this._map.options || {},
+					geometries: geometry
+				});
+				var contentDiv = L.DomUtil.create('div', '');
+				contentDiv.innerHTML = content;
+
                 this._popup
                     .setLatLng(latlng)
-                    .setContent(L.gmxUtil.parseBalloonTemplate(balloonData.templateBalloon, {
-                        properties: properties,
-                        tileAttributeTypes: gmx.tileAttributeTypes,
-                        unitOptions: this._map.options || {},
-                        geometries: geometry
-                    }))
+                    .setContent(contentDiv)
                     .openOn(this._map);
+
+				if (this.parentLayer._balloonHook) {
+					this.parentLayer._callBalloonHook(properties, this._popup.getContent());
+				}
             }
         }
     });
@@ -30155,7 +30171,6 @@ L.Map.addInitHook(function () {
     }
 });
 
-
 L.Map.addInitHook(function() {
     var map = this,
         hideControl = null,
@@ -30249,7 +30264,6 @@ L.Map.addInitHook(function() {
 		}
 	}
 });
-
 
 L.Control.GmxIcon = L.Control.extend({
     includes: L.Evented ? L.Evented.prototype : L.Mixin.Events,
@@ -30432,7 +30446,6 @@ L.Control.gmxIcon = L.Control.GmxIcon;
 L.control.gmxIcon = function (options) {
   return new L.Control.GmxIcon(options);
 };
-
 
 (function() {
 function isIE(v) {
@@ -30656,7 +30669,6 @@ L.control.gmxIconGroup = function (options) {
 
 })();
 
-
 (function () {
 var drawingIcons = ['Point', 'Polygon', 'Polyline', 'Rectangle'];
 L.Control.GmxDrawing = L.Control.GmxIconGroup.extend({
@@ -30735,7 +30747,6 @@ L.Control.GmxDrawing.addInitHook(function () {
 });
 })();
 
-
 L.extend(L.Control.GmxDrawing.locale, {
     rus: {
         'Point': 'Маркер',
@@ -30745,7 +30756,6 @@ L.extend(L.Control.GmxDrawing.locale, {
     }
 });
 
-
 L.extend(L.Control.GmxDrawing.locale, {
     eng: {
         'Point': 'Point',
@@ -30754,7 +30764,6 @@ L.extend(L.Control.GmxDrawing.locale, {
         'Rectangle': 'Rectangle'
     }
 });
-
 
 L.Control.GmxCenter = L.Control.extend({
     options: {
@@ -30815,7 +30824,6 @@ L.control.gmxCenter = function (options) {
   return new L.Control.GmxCenter(options);
 };
 
-
 L.Control.GmxHide = L.Control.GmxIcon.extend({
     options: {
         id: 'hide',
@@ -30871,7 +30879,6 @@ L.Control.gmxHide = L.Control.GmxHide;
 L.control.gmxHide = function (options) {
   return new L.Control.GmxHide(options);
 };
-
 
 L.Control.GmxLayers = L.Control.Layers.extend({
     options: {
@@ -31148,7 +31155,6 @@ L.Control.gmxLayers = L.Control.GmxLayers;
 L.control.gmxLayers = function (gmxBaseLayersManager, options) {
   return new L.Control.GmxLayers(gmxBaseLayersManager, options);
 };
-
 
 (function () {
 var _localeJson = {
@@ -31650,7 +31656,6 @@ L.control.gmxLocation = function (options) {
 };
 })();
 
-
 L.Control.GmxPopup = L.Control.extend({
     options: {
         position: 'center',
@@ -31790,7 +31795,6 @@ L.Control.GmxPopup = L.Control.extend({
 L.control.gmxPopup = function (options) {
   return new L.Control.GmxPopup(options);
 };
-
 
 (function () {
 
@@ -32031,7 +32035,6 @@ L.control.gmxCopyright = function (options) {
 };
 })();
 
-
 L.Control.GmxZoom = L.Control.Zoom.extend({
     options: {
         id: 'zoom',
@@ -32089,7 +32092,6 @@ L.control.gmxZoom = function (options) {
   return new L.Control.GmxZoom(options);
 };
 
-
 L.Control.GmxBottom = L.Control.extend({
     options: {
         position: 'bottom',
@@ -32140,7 +32142,6 @@ L.Control.gmxBottom = L.Control.GmxBottom;
 L.control.gmxBottom = function (options) {
   return new L.Control.GmxBottom(options);
 };
-
 
 L.Control.GmxLogo = L.Control.extend({
     options: {
@@ -32211,7 +32212,6 @@ L.Map.addInitHook(function () {
     }
 });
 
-
 L.Control.GmxSidebar = L.Control.extend({
     options: {
         id: 'defaultSidebar',
@@ -32267,7 +32267,6 @@ L.Control.gmxSidebar = L.Control.GmxSidebar;
 L.control.gmxSidebar = function(options) {
     return new L.Control.GmxSidebar(options);
 };
-
 
 L.Control.GmxLoaderStatus = L.Control.extend({
     options: {
@@ -32362,8 +32361,6 @@ L.Control.gmxLoaderStatus = L.Control.GmxLoaderStatus;
 L.control.gmxLoaderStatus = function (options) {
   return new L.Control.GmxLoaderStatus(options);
 };
-
-
 
 
 (function () {

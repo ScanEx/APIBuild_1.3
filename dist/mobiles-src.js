@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-5-21 09:37:23';
-var buildUUID = 'f4f1b11ef34347e6ab59b9086db4fc94';
+var buildDate = '2018-5-31 15:32:28';
+var buildUUID = '4302ad506215429293208439b95557cb';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -16187,6 +16187,9 @@ var gmxAPIutils = {
         ptx1.drawImage(canvas, 0, 0, ww, hh);
         return {'notFunc': notFunc, 'canvas': canvas1};
     },
+    setSVGIcon: function(id) {
+		return '<svg role="img" class="svgIcon"><use xlink:href="#' + id + '" href="#' + id + '"></use></svg>';
+    },
 
     getSVGIcon: function (options) {
         var svg = '<svg xmlns="' + L.Path.SVG_NS + '" xmlns:xlink="http://www.w3.org/1999/xlink"',
@@ -18518,6 +18521,7 @@ L.extend(L.gmxUtil, {
     prettifyArea: gmxAPIutils.prettifyArea,
     geoArea: gmxAPIutils.geoArea,
     parseBalloonTemplate: gmxAPIutils.parseBalloonTemplate,
+    setSVGIcon: gmxAPIutils.setSVGIcon,
     getSVGIcon: gmxAPIutils.getSVGIcon,
     getCoordinatesString: gmxAPIutils.getCoordinatesString,
     getGeometriesSummary: gmxAPIutils.getGeometriesSummary,
@@ -26762,11 +26766,10 @@ L.gmx.VectorLayer.include({
                     }
                     this._map.doubleClickZoom.disable();
                     return idr;
-                }
+                } else if (this._map) {
+					this._map.doubleClickZoom.enable();
+				}
             }
-        }
-        if (this._map) {
-            this._map.doubleClickZoom.enable();
         }
         return 0;
     },
@@ -29220,15 +29223,28 @@ L.gmx.ExternalLayer = L.Class.extend({
                         protoOffset[1] - style.iconAnchor[1] + style.sy / 2
                     ];
                 }
+				if (this.parentLayer._balloonHook) {
+					for (var key in this.parentLayer._balloonHook) {
+						properties[key] = L.gmxUtil.parseTemplate(this.parentLayer._balloonHook[key].resStr, properties);
+					}
+				}
+				var content = L.gmxUtil.parseBalloonTemplate(balloonData.templateBalloon, {
+					properties: properties,
+					tileAttributeTypes: gmx.tileAttributeTypes,
+					unitOptions: this._map.options || {},
+					geometries: geometry
+				});
+				var contentDiv = L.DomUtil.create('div', '');
+				contentDiv.innerHTML = content;
+
                 this._popup
                     .setLatLng(latlng)
-                    .setContent(L.gmxUtil.parseBalloonTemplate(balloonData.templateBalloon, {
-                        properties: properties,
-                        tileAttributeTypes: gmx.tileAttributeTypes,
-                        unitOptions: this._map.options || {},
-                        geometries: geometry
-                    }))
+                    .setContent(contentDiv)
                     .openOn(this._map);
+
+				if (this.parentLayer._balloonHook) {
+					this.parentLayer._callBalloonHook(properties, this._popup.getContent());
+				}
             }
         }
     });
