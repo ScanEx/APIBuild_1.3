@@ -20,6 +20,7 @@ var apiFiles = [
 		out: 'mobiles',								// build for mobiles
 		deps: 'build/deps.js',
 		srcPath: 'src/',
+		css: ['dist/gmxStyles.css'],
 		js: ['dist/leaflet-geomixer-src.js']
 	},
 	{
