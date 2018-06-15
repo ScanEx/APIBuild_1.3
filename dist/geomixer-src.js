@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-6-13 14:05:59';
-var buildUUID = 'e9eb503809214a20bcb2a2e69ad1fc49';
+var buildDate = '2018-6-15 13:35:25';
+var buildUUID = '3229a9c070c847be99b4c556ce91cfb3';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -24880,7 +24880,7 @@ ScreenVectorTile.prototype = {
 					gmx.preRenderHooks.forEach(function (f) {
 						if (!bgImage) {
 							bgImage = document.createElement('canvas');
-							bgImage.width = bgImage.height = this.ts;
+							bgImage.width = bgImage.height = ts || 256;
 						}
 						var res = f(bgImage, hookInfo);
 						if (res && res.then) {
@@ -29392,8 +29392,8 @@ L.gmx.ExternalLayer = L.Class.extend({
 			for(var key in tiles) {
 				var pt = tiles[key];
 				if (!pt._drawDone && pt._gridData) {
-					pt._drawDone = true;
-					pt.el.width = pt.el.height = ts;
+					//pt._drawDone = true;
+					if (pt.el.height != ts) { pt.el.width = pt.el.height = ts; }
 					var ctx = pt.el.getContext('2d');
 					pt._gridData.forEach(function(it) {
 						if (it.count) {
@@ -29490,8 +29490,9 @@ L.gmx.ExternalLayer = L.Class.extend({
 						return  it.counts[b] - it.counts[a];
 					}).map(function(key) {
 						return this._layer.getStyleIcon(key, it.counts[key]);
-					}.bind(this)).join(''));
-
+					}.bind(this)).join(''), {
+						minWidth: 100
+					});
 			return marker;
         }
     });
