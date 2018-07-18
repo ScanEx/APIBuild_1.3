@@ -35,3 +35,12 @@ images - папка иконок Leaflet-1.3
 
 Сборки доступны по адресу:
 http://www.kosmosnimki.ru/lib/geomixer_1.3/
+
+Описания видео и вебинары
+```
+https://vimeo.com/118021607
+https://vimeo.com/128115656
+https://vimeo.com/127895276
+https://www.youtube.com/watch?v=xL4NHc_uEjw
+https://www.youtube.com/watch?v=JQ-q4CgVvYE
+https://www.youtube.com/watch?v=zm0X1dR85wo
