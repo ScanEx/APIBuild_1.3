@@ -4,6 +4,10 @@ var apiFiles = [
 		js: ['external/es6-promise/dist/es6-promise.auto.js']		// es6-promise polyfill
 	},
 	{
+		name: 'classList',
+		js: ['external/classList/classList.js']			// classList polyfill
+	},
+	{
 		name: 'fetch',
 		out: 'polyfill',								// build for polyfill
 		skipSymbols: true,
