@@ -1,8 +1,8 @@
 var gmxVersion = {
   "jsPath": {
-    "//www.kosmosnimki.ru/lib/geomixer/geomixer-src.js": 1539069116103
+    "//www.kosmosnimki.ru/lib/geomixer/geomixer-src.js": 1539163595840
   },
   "cssPath": {
-    "//www.kosmosnimki.ru/lib/geomixer/geomixer.css": 1539069116103
+    "//www.kosmosnimki.ru/lib/geomixer/geomixer.css": 1539163595840
   }
 };
