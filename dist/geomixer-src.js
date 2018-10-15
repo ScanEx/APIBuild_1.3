@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-10-15 11:44:02';
-var buildUUID = '00038b376ec6405cb1ca13121a46d943';
+var buildDate = '2018-10-15 12:17:48';
+var buildUUID = '1553ebac62fe4eb5a6adaf485b2b28e2';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -25796,7 +25796,7 @@ StyleManager.prototype = {
         }
         for (var i = 0, len = this._styles.length; i < len; i++) {
             var st = this._styles[i];
-            if (z > st.MaxZoom || z < st.MinZoom
+            if (st.disabled || z > st.MaxZoom || z < st.MinZoom
                 || (st.filterFunction && !st.filterFunction(propArray, indexes, types))) {
                 continue;
             }
