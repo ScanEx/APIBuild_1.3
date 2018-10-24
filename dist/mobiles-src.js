@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-10-24 09:30:28';
-var buildUUID = '29b4f0b447a84844b5b88a8aeedd17d0';
+var buildDate = '2018-10-24 14:28:14';
+var buildUUID = '4421db6c7c0a4f2b8c1e8a8d33535686';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -25261,10 +25261,9 @@ ScreenVectorTile.prototype = {
 					result();
 					return;
 				}
-				var ts = this.layer.options.tileSize;
-				this.tile.width = this.tile.height = ts;
 				var doDraw = function() {
 					var gmx = _this.gmx,
+						ts = _this.layer.options.tileSize || 256,
 						dattr = {
 							//tileLink: tileLink,
 							tbounds: _this.tbounds,
@@ -25277,6 +25276,7 @@ ScreenVectorTile.prototype = {
 						},
 						tinfo = 'zKey:' + _this.zKey + ' count: ' + geoItems.length;
 					L.DomUtil.addClass(tile, tinfo);
+					_this.tile.width = _this.tile.height = ts;
 
 					if (!_this.layer._gridClusters) {
 						ctx.clearRect(0, 0, ts, ts);
@@ -25300,7 +25300,7 @@ ScreenVectorTile.prototype = {
 					gmx.preRenderHooks.forEach(function (f) {
 						if (!bgImage) {
 							bgImage = document.createElement('canvas');
-							bgImage.width = bgImage.height = ts || 256;
+							bgImage.width = bgImage.height = ts;
 						}
 						var res = f(bgImage, hookInfo);
 						if (res && res.then) {
