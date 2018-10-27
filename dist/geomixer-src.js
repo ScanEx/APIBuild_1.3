@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-10-25 14:07:08';
-var buildUUID = '0d010e694b2b42398c79c81332f73bae';
+var buildDate = '2018-10-27 13:55:27';
+var buildUUID = '5dac6b1561d8412ea251c22cb5a74329';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -30752,8 +30752,8 @@ L.gmx.loadLayer = function(mapID, layerID, options) {
 			function(response) {
 				reject('Can\'t load layer ' + layerID + ' from map ' + mapID + ': ' + response.error);
 			}
-		);
-	});
+		).catch(console.log);
+	}).catch(console.log);
 };
 
 L.gmx.loadLayers = function(layers, globalOptions) {
@@ -36718,42 +36718,37 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 			attr = attr || {};
 			L.gmx.loadLayers(layersGMX, attr).then(function(arr) {
 				var layerByLayerID = {},
-					// overlay = null,
+					sputnik = baseLayers['sputnik'].layers[0],
 					arr1 = L.version === '0.7.7' ? arguments : arr,
 					i, len;
 
 				for (i = 0, len = arr1.length; i < len; i++) {
-					var layer = arr1[i],
-						gmx = layer._gmx,
-						mapName = gmx.mapName,
-						layerID = gmx.layerID;
-					if (!(mapName in layerByLayerID)) {
-						layerByLayerID[mapName] = {};
+					var layer = arr1[i];
+					if (layer) {
+						var gmx = layer._gmx,
+							mapName = gmx.mapName,
+							layerID = gmx.layerID;
+						if (!(mapName in layerByLayerID)) {
+							layerByLayerID[mapName] = {};
+						}
+						layerByLayerID[mapName][layerID] = layer;
 					}
-					layerByLayerID[mapName][layerID] = layer;
 				}
 				for (i = 0, len = layersGMX.length; i < len; i++) {
 					var info = layersGMX[i],
-						type = info.type;
-					if (type === 'satellite') {
-						var satellite = layerByLayerID[info.mapID][info.layerID]; // satellite
-						baseLayers.OSMHybrid.layers.unshift(satellite);
-						// if (lang === 'rus') {
-								// baseLayers.OSMHybrid.layers.unshift(satellite);
-						// } else {
-							// overlay = layerByLayerID[info.mapID]['BCCCE2BDC9BF417DACF27BB4D481FAD9']; // eng Overlay
-							// overlay.options.gmxCopyright = getCopyright2();
-							// overlay.options.clickable = false;
-							// baseLayers.OSMHybrid.layers = [satellite, overlay];
-						// }
-					}
-					baseLayers[type] = {
-						rus: info.rus,
-						eng: info.eng,
-						icon: info.icon,
-						overlayColor: info.overlayColor || '#000000',
-						layers: [layerByLayerID[info.mapID][info.layerID]]
-					};
+						type = info.type,
+						it = layerByLayerID[info.mapID],
+						clayer = it ? it[info.layerID] : sputnik;
+						if (type === 'satellite') {
+							baseLayers.OSMHybrid.layers.unshift(clayer);
+						}
+						baseLayers[type] = {
+							rus: info.rus,
+							eng: info.eng,
+							icon: info.icon,
+							overlayColor: info.overlayColor || '#000000',
+							layers: [clayer]
+						};
 				}
 				for (var id in baseLayers) {
 					var baseLayer = baseLayers[id];
