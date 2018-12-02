@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-11-27 16:11:09';
-var buildUUID = 'bf6d6589138849e4b372204abc09209d';
+var buildDate = '2018-12-2 22:02:14';
+var buildUUID = '3731a4f6735c481b9d6c11ee3451baf0';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -21252,6 +21252,7 @@ VectorTile.prototype = {
         this.state = 'notLoaded';	 //notLoaded, loading, loaded
         this.data = null;
         this.dataOptions = null;
+		this.itemsKeys = {};
 
 		this.loadDef = new Promise(function(resolve, reject) {
 			this._resolve = resolve;
@@ -22818,8 +22819,9 @@ var DataManager = L.Class.extend({
         }
 
         if (needProcessingFilter) {
+			var processingTile = this.processingTile;
             this.addFilter('processingFilter', function(item, tile) {
-                return tile.z === 0 || !item.processing;
+                return tile.z === 0 || !(item.id in processingTile.itemsKeys);
             });
         } else if (this._filters['processingFilter']) {
             this.removeFilter('processingFilter');
@@ -25316,10 +25318,9 @@ var MAX = 1000000,
         },
         clickFunc: function (ev) {
             if (!this.disabled) {
-                var item = ev.gmx.target.item;
-					// id = ev.gmx.id;
-                this.addToReorder(item.id, ev.originalEvent.ctrlKey);
-                this.layer.redrawItem(item);
+                var id = ev.gmx.id;
+                this.addToReorder(id, ev.originalEvent.ctrlKey);
+                this.layer.redrawItem(id);
             }
         },
         sortItems: function(a, b) {     // layer context
