@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-2 22:02:23';
-var buildUUID = '3731a4f6735c481b9d6c11ee3451baf0';
+var buildDate = '2018-12-7 06:02:09';
+var buildUUID = '61bed52e1947444d8c74e4647a81bf79';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -18771,8 +18771,10 @@ gmxAPIutils.layerHelper = {
 if (!L.gmxUtil) { L.gmxUtil = {}; }
 
 //public interface
+var	pNavigation = self.performance && self.performance.getEntriesByType('navigation')[0];
+
 L.extend(L.gmxUtil, {
-	isHTTP2: self.performance && self.performance.getEntriesByType('navigation')[0].nextHopProtocol === 'h2',
+	isHTTP2: pNavigation && pNavigation.nextHopProtocol === 'h2',
 	debug: gmxAPIutils.debug,
 	createWorker: gmxAPIutils.createWorker,
 	apiLoadedFrom: gmxAPIutils.apiLoadedFrom,
@@ -30809,6 +30811,7 @@ L.Map.addInitHook(function () {
     }
 });
 
+
 L.Map.addInitHook(function() {
     var map = this,
         hideControl = null,
@@ -30902,6 +30905,7 @@ L.Map.addInitHook(function() {
 		}
 	}
 });
+
 
 L.Control.GmxIcon = L.Control.extend({
     includes: L.Evented ? L.Evented.prototype : L.Mixin.Events,
@@ -31084,6 +31088,7 @@ L.Control.gmxIcon = L.Control.GmxIcon;
 L.control.gmxIcon = function (options) {
   return new L.Control.GmxIcon(options);
 };
+
 
 (function() {
 function isIE(v) {
@@ -31307,6 +31312,7 @@ L.control.gmxIconGroup = function (options) {
 
 })();
 
+
 (function () {
 var drawingIcons = ['Point', 'Polygon', 'Polyline', 'Rectangle'];
 L.Control.GmxDrawing = L.Control.GmxIconGroup.extend({
@@ -31385,6 +31391,7 @@ L.Control.GmxDrawing.addInitHook(function () {
 });
 })();
 
+
 L.extend(L.Control.GmxDrawing.locale, {
     rus: {
         'Point': 'Маркер',
@@ -31394,6 +31401,7 @@ L.extend(L.Control.GmxDrawing.locale, {
     }
 });
 
+
 L.extend(L.Control.GmxDrawing.locale, {
     eng: {
         'Point': 'Point',
@@ -31402,6 +31410,7 @@ L.extend(L.Control.GmxDrawing.locale, {
         'Rectangle': 'Rectangle'
     }
 });
+
 
 L.Control.GmxCenter = L.Control.extend({
     options: {
@@ -31462,6 +31471,7 @@ L.control.gmxCenter = function (options) {
   return new L.Control.GmxCenter(options);
 };
 
+
 L.Control.GmxHide = L.Control.GmxIcon.extend({
     options: {
         id: 'hide',
@@ -31517,6 +31527,7 @@ L.Control.gmxHide = L.Control.GmxHide;
 L.control.gmxHide = function (options) {
   return new L.Control.GmxHide(options);
 };
+
 
 L.Control.GmxLayers = L.Control.Layers.extend({
     options: {
@@ -31793,6 +31804,7 @@ L.Control.gmxLayers = L.Control.GmxLayers;
 L.control.gmxLayers = function (gmxBaseLayersManager, options) {
   return new L.Control.GmxLayers(gmxBaseLayersManager, options);
 };
+
 
 (function () {
 var _localeJson = {
@@ -32294,6 +32306,7 @@ L.control.gmxLocation = function (options) {
 };
 })();
 
+
 L.Control.GmxPopup = L.Control.extend({
     options: {
         position: 'center',
@@ -32433,6 +32446,7 @@ L.Control.GmxPopup = L.Control.extend({
 L.control.gmxPopup = function (options) {
   return new L.Control.GmxPopup(options);
 };
+
 
 (function () {
 
@@ -32654,7 +32668,7 @@ L.Control.GmxCopyright = L.Control.extend({
         if (!this._map._animatingZoom) {
 			if (this._redrawTimer) { cancelIdleCallback(this._redrawTimer); }
 			this._redrawTimer = requestIdleCallback(function () {
-				if (this._map) { this._redrawItems(); }
+				if (this._map && this._map._mapPane) { this._redrawItems(); }
 			}.bind(this), {timeout: 250});
 		}
         // var my = this;
@@ -32672,6 +32686,7 @@ L.control.gmxCopyright = function (options) {
   return new L.Control.GmxCopyright(options);
 };
 })();
+
 
 L.Control.GmxZoom = L.Control.Zoom.extend({
     options: {
@@ -32730,6 +32745,7 @@ L.control.gmxZoom = function (options) {
   return new L.Control.GmxZoom(options);
 };
 
+
 L.Control.GmxBottom = L.Control.extend({
     options: {
         position: 'bottom',
@@ -32780,6 +32796,7 @@ L.Control.gmxBottom = L.Control.GmxBottom;
 L.control.gmxBottom = function (options) {
   return new L.Control.GmxBottom(options);
 };
+
 
 L.Control.GmxLogo = L.Control.extend({
     options: {
@@ -32850,6 +32867,7 @@ L.Map.addInitHook(function () {
     }
 });
 
+
 L.Control.GmxSidebar = L.Control.extend({
     options: {
         id: 'defaultSidebar',
@@ -32905,6 +32923,7 @@ L.Control.gmxSidebar = L.Control.GmxSidebar;
 L.control.gmxSidebar = function(options) {
     return new L.Control.GmxSidebar(options);
 };
+
 
 L.Control.GmxLoaderStatus = L.Control.extend({
     options: {
@@ -32999,6 +33018,8 @@ L.Control.gmxLoaderStatus = L.Control.GmxLoaderStatus;
 L.control.gmxLoaderStatus = function (options) {
   return new L.Control.GmxLoaderStatus(options);
 };
+
+
 
 
 (function () {
@@ -34036,6 +34057,9 @@ L.GmxDrawing.Feature = L.LayerGroup.extend({
 					arr = (obj.getLayers ? obj.getLayers()[0] : obj)
 						.getLatLngs()
 						.map(function(it) { return {_latlngs: it.shift(), _holes: it}; });
+				} else if (this.options.type === 'Polygon') {
+					var _latlngs = (obj.getLayers ? obj.getLayers()[0] : obj).getLatLngs();
+					arr = [{_latlngs: _latlngs.shift(), _holes: _latlngs}];
 				}
 			}
             for (var i = 0, len = arr.length; i < len; i++) {

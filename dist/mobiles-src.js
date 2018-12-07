@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-2 22:02:14';
-var buildUUID = '3731a4f6735c481b9d6c11ee3451baf0';
+var buildDate = '2018-12-7 06:01:59';
+var buildUUID = '61bed52e1947444d8c74e4647a81bf79';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -18771,8 +18771,10 @@ gmxAPIutils.layerHelper = {
 if (!L.gmxUtil) { L.gmxUtil = {}; }
 
 //public interface
+var	pNavigation = self.performance && self.performance.getEntriesByType('navigation')[0];
+
 L.extend(L.gmxUtil, {
-	isHTTP2: self.performance && self.performance.getEntriesByType('navigation')[0].nextHopProtocol === 'h2',
+	isHTTP2: pNavigation && pNavigation.nextHopProtocol === 'h2',
 	debug: gmxAPIutils.debug,
 	createWorker: gmxAPIutils.createWorker,
 	apiLoadedFrom: gmxAPIutils.apiLoadedFrom,
