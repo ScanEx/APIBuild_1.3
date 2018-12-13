@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-7 06:01:59';
-var buildUUID = '61bed52e1947444d8c74e4647a81bf79';
+var buildDate = '2018-12-13 16:05:22';
+var buildUUID = '4817361970e548d0ae6500f9cccb4cc2';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22823,7 +22823,7 @@ var DataManager = L.Class.extend({
         if (needProcessingFilter) {
 			var processingTile = this.processingTile;
             this.addFilter('processingFilter', function(item, tile) {
-                return tile.z === 0 || !(item.id in processingTile.itemsKeys);
+                return tile.z === 0 || !(item.id in processingTile.itemsKeys || skip[item.id]);
             });
         } else if (this._filters['processingFilter']) {
             this.removeFilter('processingFilter');
@@ -24017,11 +24017,11 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 
     redrawItem: function (item) {
         if (this._map) {
-			if (typeof(item) === 'number') { item = this._gmx.dataManager.getItem(item); }
-            // var gmxTiles = this._gmx.dataManager.getTilesByItem(item);
-            var gmxTiles = this._getTilesByBounds(item.bounds);
-
-            this.repaint(gmxTiles);
+			if (typeof(item) !== 'object') { item = this._gmx.dataManager.getItem(item); }
+			if (item) {
+				var gmxTiles = this._getTilesByBounds(item.bounds);
+				this.repaint(gmxTiles);
+			}
         }
     },
 
@@ -26946,8 +26946,8 @@ L.gmx.VectorLayer.include({
                 iconAnchor = !iconCenter && currentStyle.iconAnchor ? currentStyle.iconAnchor : null,
                 parsedStyle = gmx.styleManager.getObjStyle(item),
                 lineWidth = currentStyle.lineWidth || parsedStyle.lineWidth || parsedStyle.weight || 0,
-                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || 0),
-                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || 0),
+                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || parsedStyle.iconSize || 0),
+                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || parsedStyle.iconSize || 0),
                 offset = [
                     iconScale * sx / 2,
                     iconScale * sy / 2
