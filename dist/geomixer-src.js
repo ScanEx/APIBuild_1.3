@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-25 10:38:13';
-var buildUUID = 'acb81a220533421ca1a448605d9e5763';
+var buildDate = '2018-12-25 14:12:03';
+var buildUUID = 'edc2633067c54f028f3893e6193043dc';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -21031,6 +21031,10 @@ L.extend(L.gmxLocale, {
         Length : 'Длина',
         nodeLength : 'Длина от начала',
         edgeLength : 'Длина сегмента',
+        Rotate : 'Поворот',
+        Move : 'Сдвиг',
+        Save : 'Сохранить',
+        Cancel : 'Отменить',
         Angle : 'Угол',
         Area : 'Площадь',
         Perimeter : 'Периметр',
@@ -21054,6 +21058,10 @@ L.extend(L.gmxLocale, {
         Length : 'Length',
         nodeLength : 'From start point',
         edgeLength : 'Segment length',
+        Rotate : 'Rotate',
+        Move : 'Move',
+        Save : 'Save',
+        Cancel : 'Cancel',
         Angle : 'Angle',
         Area : 'Area',
         Perimeter : 'Perimeter',
@@ -33042,8 +33050,8 @@ L.GmxDrawing = L.Class.extend({
         this.contextmenu = new L.GmxDrawingContextMenu({
 			// points: [], // [{text: 'Remove point'}, {text: 'Delete feature'}],
 			points: [{text: 'Rotate'}, {text: 'Move'}],
-			bbox: [{text: 'Edit'}, {text: 'Cancel'}],
-			lines: []
+			bbox: [{text: 'Save'}, {text: 'Cancel'}],
+			lines: [{text: 'Rotate'}, {text: 'Move'}]
 		});
 
         if (L.gmxUtil && L.gmxUtil.prettifyDistance) {
@@ -34397,6 +34405,18 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 				contextmenuItems: []
 			});
 		}
+		if (this.lines.bindContextMenu) {
+			this.lines.bindContextMenu({
+				contextmenu: false,
+				contextmenuInheritItems: false,
+				contextmenuItems: []
+			});
+			this.lines.on('mouseover', function (ev) {
+				if (ev.type === 'mouseover') {
+					this._recheckContextItems('lines', this._map);
+				}
+			}, this);
+		}
         this._parent.on('rotate', function (ev) {
 			this.toggleTooltip(ev, true, 'angle');
 		}, this);
@@ -34449,7 +34469,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 				obj.callback(downAttr);
 			} else if (type === 'Remove point') {
 				ring._removePoint(downAttr.num);
-			} else if (type === 'Edit' || type === 'Move' || type === 'Rotate') {
+			} else if (type === 'Save' || type === 'Move' || type === 'Rotate') {
                 this._toggleRotate(type, downAttr);
 			} else if (type === 'Cancel' && this._editHistory.length) {
 				this.setLatLngs(this._editHistory.pop());
@@ -34764,7 +34784,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
     },
 
     _editHistory: [],
-    _dragType: 'Edit',
+    // _dragType: 'Save',
     _needRotate: false,
     _toggleRotate: function (type) {
 		this._needRotate = type === 'Rotate';

@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-25 10:38:04';
-var buildUUID = 'acb81a220533421ca1a448605d9e5763';
+var buildDate = '2018-12-25 14:11:54';
+var buildUUID = 'edc2633067c54f028f3893e6193043dc';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -21031,6 +21031,10 @@ L.extend(L.gmxLocale, {
         Length : 'Длина',
         nodeLength : 'Длина от начала',
         edgeLength : 'Длина сегмента',
+        Rotate : 'Поворот',
+        Move : 'Сдвиг',
+        Save : 'Сохранить',
+        Cancel : 'Отменить',
         Angle : 'Угол',
         Area : 'Площадь',
         Perimeter : 'Периметр',
@@ -21054,6 +21058,10 @@ L.extend(L.gmxLocale, {
         Length : 'Length',
         nodeLength : 'From start point',
         edgeLength : 'Segment length',
+        Rotate : 'Rotate',
+        Move : 'Move',
+        Save : 'Save',
+        Cancel : 'Cancel',
         Angle : 'Angle',
         Area : 'Area',
         Perimeter : 'Perimeter',
