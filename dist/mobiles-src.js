@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-13 16:05:22';
-var buildUUID = '4817361970e548d0ae6500f9cccb4cc2';
+var buildDate = '2018-12-25 09:30:38';
+var buildUUID = '687952118d20450aba253bdf4cb894e6';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20552,7 +20552,7 @@ var gmxMapManager = {
             for (var i = 0, len = arr.length; i < len; i++) {
                 var layer = arr[i];
 
-				if (callback(layer) && onceFlag) { break; }
+				if (callback(layer, node) && onceFlag) { break; }
                 if (layer.type === 'group') {
                     iterate(layer.content);
                 }
@@ -21031,6 +21031,7 @@ L.extend(L.gmxLocale, {
         Length : 'Длина',
         nodeLength : 'Длина от начала',
         edgeLength : 'Длина сегмента',
+        Angle : 'Угол',
         Area : 'Площадь',
         Perimeter : 'Периметр',
         units: {
@@ -21053,6 +21054,7 @@ L.extend(L.gmxLocale, {
         Length : 'Length',
         nodeLength : 'From start point',
         edgeLength : 'Segment length',
+        Angle : 'Angle',
         Area : 'Area',
         Perimeter : 'Perimeter',
         units: {
@@ -21790,7 +21792,7 @@ var TilesTree = function(options) {
             count: 0,
             tiles: []
         };
-        var key = VectorTile.createTileKey(t);
+        var key = L.gmx.VectorTile.createTileKey(t);
 
         addTile(_rootNodes[ds], t, key);
     }
@@ -21841,7 +21843,7 @@ var TilesTree = function(options) {
 
             if (options.bounds && !node.tileBounds) {
                 node.tileBounds = node.tiles.map(function(it) {
-                    return VectorTile.boundsFromTileKey(it);
+                    return L.gmx.VectorTile.boundsFromTileKey(it);
                 });
             }
 
