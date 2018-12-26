@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-26 14:44:27';
-var buildUUID = '9f1bb973bc934036ae5dd5cb8cb81a7b';
+var buildDate = '2018-12-26 15:58:01';
+var buildUUID = '1705689c8cc54350bd60f2c774e49605';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -34482,7 +34482,11 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 			} else if (type === 'Save' || type === 'Move' || type === 'Rotate') {
                 this._toggleRotate(type, downAttr);
 			} else if (type === 'Cancel' && this._editHistory.length) {
-				this.setLatLngs(this._editHistory.pop());
+				if (this._editHistory.length) {
+					this.setLatLngs(this._editHistory[0]);
+					this._editHistory = [];
+				}
+                this._toggleRotate('Save', downAttr);
 			}
         }
     },
@@ -34798,6 +34802,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
     _needRotate: false,
     _toggleRotate: function (type) {
 		this._needRotate = type === 'Rotate';
+		this._editHistory = [];
 
 		if (this.bbox) {
 			this.bbox
