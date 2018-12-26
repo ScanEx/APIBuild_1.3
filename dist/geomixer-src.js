@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-25 14:12:03';
-var buildUUID = 'edc2633067c54f028f3893e6193043dc';
+var buildDate = '2018-12-26 14:44:27';
+var buildUUID = '9f1bb973bc934036ae5dd5cb8cb81a7b';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -34420,8 +34420,18 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
         this._parent.on('rotate', function (ev) {
 			this.toggleTooltip(ev, true, 'angle');
 		}, this);
+		L.DomEvent.on(document, 'keydown keyup', this._toggleBboxClass, this);
+	},
 
-    },
+    _toggleBboxClass: function (ev) {
+		if (this.bbox) {
+			var flagRotate = this._needRotate;
+			if (!ev.altKey) { flagRotate = !flagRotate; }
+			if (ev.type === 'keyup' && !ev.altKey) { flagRotate = !this._needRotate; }
+			L.DomUtil[flagRotate ? 'removeClass' : 'addClass'](this.bbox._path, 'Rotate');
+		}
+	},
+
     toggleTooltip: function (ev, flag, type) {
 		if ('hideTooltip' in this._parent) {
 			ev.ring = this;
@@ -34800,8 +34810,9 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 				['transformOrigin', 'WebkitTransformOrigin', 'OTransformOrigin', 'MozTransformOrigin', 'msTransformOrigin']);
 
 			this.bbox = L.rectangle(this.lines.getBounds(), {
-				color: 'rgb(51, 136, 255)',
-				className: 'leaflet-drawing-bbox',
+				color: this.lines.options.color, //||'rgb(51, 136, 255)',
+				opacity: this.lines.options.opacity,
+				className: 'leaflet-drawing-bbox ' + type,
 				dashArray: '6, 3',
 				smoothFactor: 0,
 				noClip: true,
@@ -34842,6 +34853,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 		if (ev.originalEvent.altKey) {
 			flagRotate = !flagRotate;
 		}
+		if (this._map.contextmenu) { this._map.contextmenu.hide(); }
 		if (flagRotate) {
 			this._rotateStartPoint = ev.latlng;
 			this._rotateCenter = this.bbox.getCenter();
@@ -36556,6 +36568,17 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 rus: 'Пустая',
                 eng: 'Empty',
                 layers: []
+            },
+            heatmap2018: {
+                rus: '0.5 m heatmap-2018',
+                eng: '0.5 m heatmap-2018',
+                icon: iconPrefix + 'VHR-heatmap_baselayer_ico.png',
+                layers: [
+					L.tileLayer('//maps.kosmosnimki.ru/TileSender.ashx?ModeKey=tile&ftc=osm&srs=3857&z={z}&x={x}&y={y}&LayerName=C1DEB466B9884037B078834ED0F4559A', {
+                        maxZoom: 9,
+                        maxNativeZoom: 7
+					})
+                ]
             },
             sputnik: {
                 rus: 'Спутник ру',
