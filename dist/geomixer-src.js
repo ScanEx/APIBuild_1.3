@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-28 06:23:13';
-var buildUUID = 'ca06dc4d1f044f6eb85c6dd571d3f9bd';
+var buildDate = '2018-12-28 13:52:58';
+var buildUUID = 'afce99cce2cd45a19da704b82ff9f18e';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -36524,7 +36524,8 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 			protocol = L.gmxUtil ? L.gmxUtil.protocol : 'http:',
             osmTilePrefix = protocol + '//{s}tilecart.kosmosnimki.ru/',
             zIndexOffset = 2000000,
-			sessionKey = L.gmx.gmxSessionManager.getSessionKeyRes('maps.kosmosnimki.ru'),
+			hostName = L.gmxUtil.normalizeHostname(window.serverBase || 'maps.kosmosnimki.ru'),
+			sessionKey = L.gmx.gmxSessionManager.getSessionKeyRes(hostName),
 			sessionPar = '&key=' + encodeURIComponent(sessionKey),
             mapID = attr && attr.mapID ? attr.mapID : '1D30C72D02914C5FB90D1D448159CAB6',
             gmxLocale = L.gmxLocale,
@@ -36534,6 +36535,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
             };
 
         var copyrights = {
+            bing: '&copy; <a href="https://www.bing.com/maps">Microsoft Corporation Bing</a>',
             yandex: '&copy; <a href="https://yandex.ru/legal/maps_termsofuse/?lang=en">Yandex</a>',
             collinsbartholomew: '&copy; <a href="http://www.collinsbartholomew.com/">Collins Bartholomew Ltd.</a>',
             geocenter: '&copy; <a href="http://www.geocenter-consulting.ru/">' + _gtxt('ЗАО «Геоцентр-Консалтинг»', 'Geocentre-Consulting') + '</a>',
@@ -36868,7 +36870,16 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
             eng: 'Satellite',
             overlayColor: '#ffffff',
             icon: iconPrefix + 'basemap_satellite.png'
-        }];
+        },{
+            mapID: mapID,
+            layerID: '16942D64977B43B98F88F5FC79BA6756', // bing virtual
+            type: 'bingSatellite',
+            rus: 'Спутник (Bing)',
+            eng: 'Aerial (Bing)',
+            overlayColor: '#ffffff',
+            icon: iconPrefix + 'basemap_Bing_ico.png',
+			attribution: copyrights.bing
+		}];
 
         if (lang === 'rus') {
             baseLayers['2GIS'] = {
@@ -36899,9 +36910,16 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 				for (i = 0, len = arr1.length; i < len; i++) {
 					var layer = arr1[i];
 					if (layer) {
-						var gmx = layer._gmx,
-							mapName = gmx.mapName,
-							layerID = gmx.layerID;
+						var gmx = layer._gmx || {},
+							opt = layersGMX[i] || {},
+							mapName = gmx.mapName || opt.mapID,
+							layerID = gmx.layerID || opt.layerID;
+						if ('gmxCopyright' in opt) {
+							layer.options.gmxCopyright = opt.gmxCopyright;
+						}
+						if ('attribution' in opt) {
+							layer.options.attribution = opt.attribution;
+						}
 						if (!(mapName in layerByLayerID)) {
 							layerByLayerID[mapName] = {};
 						}
