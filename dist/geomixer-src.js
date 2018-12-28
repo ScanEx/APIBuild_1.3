@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-26 15:58:01';
-var buildUUID = '1705689c8cc54350bd60f2c774e49605';
+var buildDate = '2018-12-28 06:23:13';
+var buildUUID = 'ca06dc4d1f044f6eb85c6dd571d3f9bd';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20107,6 +20107,7 @@ L.gmxUtil.drawGeoItem = function(geoItem, item, options, currentStyle, style) {
     if (style) {
         if (gmx.styleHook) {
             if (!geoItem.styleExtend) {
+				item.ctx = ctx;
                 geoItem.styleExtend = gmx.styleHook(item, gmx.lastHover && idr === gmx.lastHover.id);
             }
             if (geoItem.styleExtend) {
@@ -36523,6 +36524,8 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 			protocol = L.gmxUtil ? L.gmxUtil.protocol : 'http:',
             osmTilePrefix = protocol + '//{s}tilecart.kosmosnimki.ru/',
             zIndexOffset = 2000000,
+			sessionKey = L.gmx.gmxSessionManager.getSessionKeyRes('maps.kosmosnimki.ru'),
+			sessionPar = '&key=' + encodeURIComponent(sessionKey),
             mapID = attr && attr.mapID ? attr.mapID : '1D30C72D02914C5FB90D1D448159CAB6',
             gmxLocale = L.gmxLocale,
             lang = gmxLocale ? gmxLocale.getLanguage() : 'rus',
@@ -36575,12 +36578,13 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 layers: []
             },
             heatmap2018: {
-                rus: '0.5 m heatmap-2018',
-                eng: '0.5 m heatmap-2018',
+                rus: '0.5-0.3 m heatmap-2018',
+                eng: '0.5-0.3 m heatmap-2018',
                 icon: iconPrefix + 'VHR-heatmap_baselayer_ico.png',
+                description: '<img src = "' + iconPrefix + 'VHR-heatmap_baselayer_legend.svg"></img>',
                 layers: [
-					L.tileLayer('//maps.kosmosnimki.ru/TileSender.ashx?ModeKey=tile&ftc=osm&srs=3857&z={z}&x={x}&y={y}&LayerName=C1DEB466B9884037B078834ED0F4559A', {
-                        maxZoom: 9,
+					L.tileLayer('//maps.kosmosnimki.ru/TileSender.ashx?ModeKey=tile&ftc=osm&srs=3857&z={z}&x={x}&y={y}&LayerName=C1DEB466B9884037B078834ED0F4559A' + sessionPar, {
+                        maxZoom: 11,
                         maxNativeZoom: 7
 					})
                 ]
