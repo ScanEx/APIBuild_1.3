@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-28 13:52:48';
-var buildUUID = 'afce99cce2cd45a19da704b82ff9f18e';
+var buildDate = '2019-1-15 08:23:34';
+var buildUUID = '3ac709e4bf2e4c01aadd60092842b7db';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)

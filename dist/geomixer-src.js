@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2018-12-28 13:52:58';
-var buildUUID = 'afce99cce2cd45a19da704b82ff9f18e';
+var buildDate = '2019-1-15 08:23:44';
+var buildUUID = '3ac709e4bf2e4c01aadd60092842b7db';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -16670,8 +16670,6 @@ var gmxAPIutils = {
 
     pointToCanvas: function(attr) { // Точку в canvas
         var gmx = attr.gmx,
-			topLeft = attr.topLeft,
-            mInPixel = topLeft.mInPixel,
             pointAttr = attr.pointAttr,
             style = attr.style || {},
             item = attr.item,
@@ -16709,11 +16707,20 @@ var gmxAPIutils = {
             }
             style.rotateRes = currentStyle.rotate || 0;
             if ('opacity' in style) { ctx.globalAlpha = currentStyle.opacity || style.opacity; }
-            if (gmx.transformFlag) {
-//						topLeft = attr.topLeft,
-				ctx.setTransform(mInPixel, 0, 0, mInPixel, -attr.tpx, attr.tpy);
-                ctx.drawImage(image, px1, -py1, sx, sy);
-                ctx.setTransform(mInPixel, 0, 0, -mInPixel, -attr.tpx, attr.tpy);
+            if (gmx.transformFlag) {	// TODO:
+				var topLeft = attr.topLeft,
+					ww = gmxAPIutils.worldWidthMerc,
+					mInPixel = topLeft.mInPixel,
+					// mInPixel2 = 2 * mInPixel,
+					tx = (topLeft.wm.x - ww) * mInPixel + sx / 2,
+					ty = (ww - topLeft.wm.y) * mInPixel - sy / 2;
+				// px1sx = (attr.coords[0] - topLeft.wm.x) * mInPixel - sx / 2;
+				// py1sy = (topLeft.wm.y - attr.coords[1]) * mInPixel - sy / 2;
+				ctx.setTransform(1, 0, 0, 1, -tx, ty);
+                // ctx.drawImage(image, attr.coords[0], attr.coords[1], sx, sy);
+                ctx.drawImage(image, (attr.coords[0] - ww) * mInPixel, (ww - attr.coords[1]) * mInPixel, sx, sy);
+					ctx.setTransform(1, 0, 0, 1, 0, 0);
+                // ctx.setTransform(1, 0, 0, 1, -attr.tpx, attr.tpy);
             } else {
 				if (iconScale !== 1) {
 					sx *= iconScale;
@@ -22667,6 +22674,7 @@ var DataManager = L.Class.extend({
     _triggerObservers: function(oKeys) {
         var keys = oKeys || this._observers;
 
+		// console.log('_triggerObservers:', Object.keys(keys).length);	// TODO: много вызовов при начальной загрузке карты
         for (var id in keys) {
             if (this._observers[id]) {
                 this._observers[id].needRefresh = true;
@@ -22715,7 +22723,6 @@ var DataManager = L.Class.extend({
     },
 */
     _updateActiveTilesList: function(newTilesList) {
-
         if (this._tileFilteringHook) {
             var filteredTilesList = {};
             for (var tk in newTilesList) {
@@ -22729,7 +22736,6 @@ var DataManager = L.Class.extend({
         var oldTilesList = this._activeTileKeys || {};
 
         var observersToUpdate = {},
-            _this = this,
             key;
 
         if (this.processingTile) {
@@ -22741,30 +22747,29 @@ var DataManager = L.Class.extend({
 			this._tiles[key] = {tile: this._rasterVectorTile};
 		}
 
-        var checkSubscription = function(vKey) {
-            var observerIds = _this._observerTileLoader.getTileObservers(vKey);
-            for (var sid in observerIds) {
-                observersToUpdate[sid] = true;
-            }
-        };
-
         for (key in newTilesList) {
             if (!oldTilesList[key]) {
                 this._observerTileLoader.addTile(this._getVectorTile(key, true).tile);
-                checkSubscription(key);
+                this._checkSubscription(key, observersToUpdate);
             }
         }
 
         for (key in oldTilesList) {
             if (!newTilesList[key]) {
-                checkSubscription(key);
+                this._checkSubscription(key, observersToUpdate);
                 this._observerTileLoader.removeTile(key);
             }
         }
 
         this._activeTileKeys = newTilesList;
-
         this._triggerObservers(observersToUpdate);
+    },
+
+    _checkSubscription: function(vKey, observersToUpdate) {
+		var observerIds = this._observerTileLoader.getTileObservers(vKey);
+		for (var sid in observerIds) {
+			observersToUpdate[sid] = true;
+		}
     },
 
     _propertiesToArray: function(it) {
@@ -23442,9 +23447,9 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 		}
     },
 
-	_chkTiles: function () {
+	_chkTiles: function (flag) {
 		this._chkCurrentTiles();
-		this.repaint();
+		if (flag) { this.repaint(); }
 		this._waitCheckOldLevels();
 	},
 
@@ -23496,7 +23501,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
         var gmx = this._gmx;
         var owner = {
 			dateIntervalChanged: function() {
-				this._chkTiles();
+				this._chkTiles(true);
 				if (L.gmx.sendCmd) {
 					var interval = gmx.dataManager.getMaxDateInterval();
 					L.gmx.sendCmd('dateIntervalChanged', {
@@ -23540,13 +23545,15 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 					}
 					// this.redraw();
 					this.repaint();
-					this._chkTiles();
+					this._chkTiles(true);
 				}
 			},
 			versionchange: this._onVersionChange
 		};
 		events.moveend = this._waitOnMoveEnd.bind(this);
-		events.zoomend = this._waitOnMoveEnd.bind(this);
+		events.zoomend = function () {
+			this._chkTiles(true);
+		};
 
 		return {
 			map: events,
@@ -23595,7 +23602,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 				this._resetView();
 				gmx.dataManager.fire('moveend');
 
-				this._chkTiles();
+				this._chkTiles(true);
 				L.gmx.layersVersion.add(this);
 			}
 			// this._addLayerVersion();
@@ -23782,7 +23789,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
                 // this._clearAllSubscriptions();
                 this._gmx.dataManager.enableGeneralization();
                 this.redraw();
-				this._chkTiles();
+				this._chkTiles(true);
             }
         }
     },
@@ -23794,7 +23801,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
                 // this._clearAllSubscriptions();
                 this._gmx.dataManager.disableGeneralization();
                 this.redraw();
-				this._chkTiles();
+				this._chkTiles(true);
             }
         }
     },
@@ -24275,6 +24282,10 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
             if ('dateEnd' in meta) {  // фильтр для мультивременного слоя
                 gmx.dateEnd = L.gmxUtil.getDateFromStr(meta.dateEnd.Value || '01.01.1980');
             }
+            if ('showScreenTiles' in meta) {  // показывать границы экранных тайлов
+                gmx.showScreenTiles = meta.showScreenTiles.Value === '1' ? true : false;
+            }
+
             if ('shiftX' in meta || 'shiftY' in meta) {  // сдвиг всего слоя
                 gmx.shiftXlayer = meta.shiftX ? Number(meta.shiftX.Value) : 0;
                 gmx.shiftYlayer = meta.shiftY ? Number(meta.shiftY.Value) : 0;
@@ -25248,7 +25259,9 @@ ScreenVectorTile.prototype = {
 					Promise.all(fArr).then(function() {
 						if (bgImage) { dattr.bgImage = bgImage; }
 
+						// window.tStamp = Date.now();
 						//ctx.save();
+						// var drawCount = 0;
 						for (var i = 0, len = geoItems.length; i < len; i++) {
 							var geoItem = geoItems[i],
 								id = geoItem.id,
@@ -25268,12 +25281,14 @@ ScreenVectorTile.prototype = {
 // console.log('___bg', _this.ntp, item.skipRasters, item.id, dattr.rasters[item.id]);
 // }
 									L.gmxUtil.drawGeoItem(geoItem, item, dattr, hover ? item.parsedStyleHover : item.parsedStyleKeys, style);
+									//drawCount += L.gmxUtil.drawGeoItem(geoItem, item, dattr, hover ? item.parsedStyleHover : item.parsedStyleKeys, style) ? 1 : 0;
 								}
 								if (id in gmx._needPopups && !gmx._needPopups[id]) {
 									gmx._needPopups[id] = true;
 								}
 							}
 						}
+						// console.log('doDraw:', _this.zKey, drawCount, geoItems.length, (Date.now() - window.tStamp) / 1000, ' sec.');
 						//ctx.restore();
 						//_this.rasters = {}; // clear rasters		TODO: растры пропадают из-за быстрых перерисовок permalink=C2YMI
 						Promise.all(_this._getHooksPromises(gmx.renderHooks, tile, hookInfo)).then(result, reject);
@@ -26489,7 +26504,7 @@ StyleManager.decodeOldStyles = function(props) {
         if ('DisableBalloonOnClick' in it) {
             pt.DisableBalloonOnClick = it.DisableBalloonOnClick || false;
         }
-        if ('Filter' in it) {
+        if ('Filter' in it) {	// TODO: переделать на new Function = function(props, indexes, types)
 /*eslint-disable no-useless-escape */
             pt.Filter = it.Filter;
             var ph = L.gmx.Parsers.parseSQL(it.Filter.replace(/[\[\]]/g, '"'));
@@ -27239,7 +27254,7 @@ var getParams = function(prop, dm, gmx) {
 			beginDate = maxDateInterval.beginDate || gmx.beginDate,
 			endDate = maxDateInterval.endDate || gmx.endDate;
         if (beginDate) { pt.dateBegin = Math.floor(beginDate.getTime() / 1000); }
-        if (endDate) { pt.dateEnd = Math.floor(endDate.getTime() / 1000); }
+        if (endDate) { pt.dateEnd = Math.floor(endDate.getTime() / 1000); } // TODO на сервере: https://basecamp.com/2465191/projects/5006184/todos/376203532#comment_672280693
     }
     return pt;
 };
@@ -27368,8 +27383,10 @@ var chkVersion = function (layer, callback) {
 					}
 					if (!map.options.allWorld) {
 						var bbox = map.getBounds(),
-							min = crs.project(bbox.getSouthWest()),
-							max = crs.project(bbox.getNorthEast());
+							ts = L.gmxUtil.tileSizes[zoom],
+							pb = {x: ts, y: ts},
+							min = crs.project(bbox.getSouthWest())._subtract(pb),
+							max = crs.project(bbox.getNorthEast())._add(pb);
 
 						bboxStr = [min.x, min.y, max.x, max.y].join(',');
 					}
@@ -33052,7 +33069,7 @@ L.GmxDrawing = L.Class.extend({
 			// points: [], // [{text: 'Remove point'}, {text: 'Delete feature'}],
 			points: [{text: 'Rotate'}, {text: 'Move'}],
 			bbox: [{text: 'Save'}, {text: 'Cancel'}],
-			lines: [{text: 'Rotate'}, {text: 'Move'}]
+			fill: [{text: 'Rotate'}, {text: 'Move'}]
 		});
 
         if (L.gmxUtil && L.gmxUtil.prettifyDistance) {
@@ -34406,15 +34423,15 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 				contextmenuItems: []
 			});
 		}
-		if (this.lines.bindContextMenu) {
-			this.lines.bindContextMenu({
+		if (this.fill.bindContextMenu) {
+			this.fill.bindContextMenu({
 				contextmenu: false,
 				contextmenuInheritItems: false,
 				contextmenuItems: []
 			});
-			this.lines.on('mouseover', function (ev) {
+			this.fill.on('mouseover', function (ev) {
 				if (ev.type === 'mouseover') {
-					this._recheckContextItems('lines', this._map);
+					this._recheckContextItems('fill', this._map);
 				}
 			}, this);
 		}
@@ -35146,6 +35163,8 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 
     _mouseDown: function () {
         this._lastMouseDownTime = Date.now() + 200;
+		if (this._map.contextmenu) { this._map.contextmenu.hide(); }
+		if ('hideTooltip' in this._parent) { this._parent.hideTooltip(); }
     },
 
     _mouseUp: function (ev) {
