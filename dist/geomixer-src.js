@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-1-28 11:50:53';
-var buildUUID = '4809a1a126394431ad89900398072ef0';
+var buildDate = '2019-1-29 10:10:32';
+var buildUUID = '4243fe70ae774b9988267ac3648fa64b';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -32438,15 +32438,23 @@ L.Control.GmxPopup = L.Control.extend({
         position: 'center',
         id: 'gmxPopup',
         className: 'gmxControlPopup',
+		maxWidth: 800,
+		minWidth: 20,
+		maxHeight: 800,
         draggable: true
     },
 
     onAdd: function (map) {
         this._map = map;
+		if (map.gmxControlsManager) {
+			var prev = map.gmxControlsManager.get('gmxPopup');
+			if (prev) { prev.remove(); }
+		}
 		if (!this._container) {
 			this._initLayout();
 		}
-        map.on('click', this.remove, this);
+		this.update();
+        map.once('click', this.remove, this);
         return this._container;
     },
 
@@ -32458,7 +32466,6 @@ L.Control.GmxPopup = L.Control.extend({
 
     remove: function () {
 		if (this._map) {
-            this._map.off('click', this.remove, this);
 			if (L.Control.prototype.remove) {
 				L.Control.prototype.remove.call(this);
 			} else {
@@ -32508,8 +32515,8 @@ L.Control.GmxPopup = L.Control.extend({
 		style.whiteSpace = 'nowrap';
 
 		var width = container.offsetWidth;
-		width = Math.min(width, this.options.maxWidth);
-		width = Math.max(width, this.options.minWidth);
+		width = Math.min(width, this.options.maxWidth || 800);
+		width = Math.max(width, this.options.minWidth || 20);
 
 		style.width = (width + 1) + 'px';
 		style.whiteSpace = '';
@@ -32557,6 +32564,7 @@ L.Control.GmxPopup = L.Control.extend({
 		var wrapper = L.DomUtil.create('div', 'content-wrapper', container);
 		L.DomEvent.disableClickPropagation(wrapper);
 
+		this._content = this._content || this.options.content;
 		this._contentNode = L.DomUtil.create('div', 'content', wrapper);
 
 		L.DomEvent.disableScrollPropagation(this._contentNode);
