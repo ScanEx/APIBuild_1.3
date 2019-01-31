@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-1-29 10:10:23';
-var buildUUID = '4243fe70ae774b9988267ac3648fa64b';
+var buildDate = '2019-1-31 16:58:00';
+var buildUUID = '569ddb11403c4838a8850de812e28899';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -18133,10 +18133,14 @@ var gmxAPIutils = {
             for (var i = 0, len = matches.length; i < len; i++) {
                 var key1 = matches[i],
                     key = key1.substr(1, key1.length - 2),
+                    keyLC = key.toLowerCase(),
+                    val = properties[key] || properties[keyLC],
+                    type = tileAttributeTypes[key] || tileAttributeTypes[keyLC],
                     res = '';
 
-                if (key in properties) {
-                    res = L.gmxUtil.attrToString(tileAttributeTypes[key], properties[key]);
+                //if (key in properties) {
+                if (val != undefined) {
+                    res = L.gmxUtil.attrToString(type, val);
                 } else if (key === 'SUMMARY') {
                     res = options.summary || L.gmxUtil.getGeometriesSummary(geometries, unitOptions);
                 }

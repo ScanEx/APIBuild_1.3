@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-1-29 10:10:32';
-var buildUUID = '4243fe70ae774b9988267ac3648fa64b';
+var buildDate = '2019-1-31 16:58:09';
+var buildUUID = '569ddb11403c4838a8850de812e28899';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -18133,10 +18133,14 @@ var gmxAPIutils = {
             for (var i = 0, len = matches.length; i < len; i++) {
                 var key1 = matches[i],
                     key = key1.substr(1, key1.length - 2),
+                    keyLC = key.toLowerCase(),
+                    val = properties[key] || properties[keyLC],
+                    type = tileAttributeTypes[key] || tileAttributeTypes[keyLC],
                     res = '';
 
-                if (key in properties) {
-                    res = L.gmxUtil.attrToString(tileAttributeTypes[key], properties[key]);
+                //if (key in properties) {
+                if (val != undefined) {
+                    res = L.gmxUtil.attrToString(type, val);
                 } else if (key === 'SUMMARY') {
                     res = options.summary || L.gmxUtil.getGeometriesSummary(geometries, unitOptions);
                 }
@@ -32438,9 +32442,9 @@ L.Control.GmxPopup = L.Control.extend({
         position: 'center',
         id: 'gmxPopup',
         className: 'gmxControlPopup',
-		maxWidth: 800,
+		maxWidth: 520,
 		minWidth: 20,
-		maxHeight: 800,
+		maxHeight: 400,
         draggable: true
     },
 
@@ -32511,24 +32515,24 @@ L.Control.GmxPopup = L.Control.extend({
 		var container = this._contentNode,
 		    style = container.style;
 
-		style.width = '';
-		style.whiteSpace = 'nowrap';
-
-		var width = container.offsetWidth;
-		width = Math.min(width, this.options.maxWidth || 800);
-		width = Math.max(width, this.options.minWidth || 20);
-
-		style.width = (width + 1) + 'px';
-		style.whiteSpace = '';
-
-		style.height = '';
-
+		if (this.options.maxWidth) {
+			style.maxWidth = this.options.maxWidth + 'px';
+		}
+		if (this.options.minWidth) {
+			style.minWidth = this.options.minWidth + 'px';
+		}
+		if (this.options.maxHeight) {
+			style.maxHeight = this.options.maxHeight + 'px';
+		}
+		if (this.options.minHeight) {
+			style.minHeight = this.options.minHeight + 'px';
+		}
 		var height = container.offsetHeight,
 		    maxHeight = this.options.maxHeight,
 		    scrolledClass = 'leaflet-popup-scrolled';
 
 		if (maxHeight && height > maxHeight) {
-			style.height = maxHeight + 'px';
+			// style.height = maxHeight + 'px';
 			L.DomUtil.addClass(container, scrolledClass);
 		} else {
 			L.DomUtil.removeClass(container, scrolledClass);
@@ -41647,12 +41651,12 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 								var geoJSON = JSON.parse(json.Result);
 								features = geoJSON.features;
 							}
-							if (features.length) {
+							if (features && features.length) {
 								var content = '';
 								it = features[0];
 								if (isFunction) {
-									it.summary = gmxAPIutils.prettifyArea(gmxAPIutils.geoJSONGetArea(it));
-									content = gmxAPIutils.parseBalloonTemplate('', it);
+									it.summary = L.gmxUtil.prettifyArea(L.gmxUtil.geoJSONGetArea(it));
+									content = L.gmxUtil.parseBalloonTemplate('', it);
 								} else {
 									content = JSON.stringify(features, null, 2);
 								}
