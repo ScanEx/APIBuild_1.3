@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-1-31 16:58:09';
-var buildUUID = '569ddb11403c4838a8850de812e28899';
+var buildDate = '2019-2-5 19:57:07';
+var buildUUID = '03dc027631fd4ac2b77e16922d1b3009';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -27518,6 +27518,7 @@ var chkVersion = function (layer, callback) {
 							delete hostBusy[hostName];
 							if (needReq[hostName] && !busyFlag) {
 								delete needReq[hostName];
+								hosts = getRequestParams();
 								chkHost(hostName, true);
 							} else {
 								processResponse(JSON.parse(response));
@@ -28255,8 +28256,11 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 
     _redraw: function () {
         var out = [],
-            _map = this._map,
-            mapSize = _map.getSize(),
+            _map = this._map;
+
+		if (!_map || !_map._mapPane) { return; }
+
+        var mapSize = _map.getSize(),
             _canvas = this._canvas,
             chkIntersects = this.options.labels,
             offset = _map.latLngToContainerPoint(_map.getBounds().getNorthWest()),
