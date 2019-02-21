@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-2-5 19:56:58';
-var buildUUID = '03dc027631fd4ac2b77e16922d1b3009';
+var buildDate = '2019-2-21 18:07:08';
+var buildUUID = '938b5bfc7148443d9b80824c9b14f7f1';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -17327,8 +17327,11 @@ var gmxAPIutils = {
 	},
 */
     getItemCenter: function(item, geoItems) {
-        var bounds = item.bounds,
-            min = bounds.min, max = bounds.max,
+        var bounds = gmxAPIutils.bounds();
+		geoItems.forEach(function(it) {
+			bounds.extendBounds(it.dataOption.bounds);
+		});
+        var min = bounds.min, max = bounds.max,
             type = item.type,
             isPoint = type === 'POINT' || type === 'MULTIPOINT',
             center = isPoint ? [min.x, min.y] : [(min.x + max.x) / 2, (min.y + max.y) / 2];
@@ -20793,7 +20796,7 @@ var gmxMap = L.Class.extend({
 	addLayersToMap: function(leafletMap) {
 		for (var l = this.layers.length - 1; l >= 0; l--) {
 			var layer = this.layers[l];
-			if (layer.getGmxProperties().visible) {
+			if (layer instanceof L.Layer && layer.getGmxProperties().visible) {
 				leafletMap.addLayer(layer);
 			}
 		}
@@ -30873,7 +30876,7 @@ L.gmx.loadMap = function(mapID, options) {
 								layer.setZIndex(++curZIndex);
 							}
 
-							if (options.leafletMap && (visibility ? visibility[rawProperties.name] : rawProperties.visible)) {
+							if (options.leafletMap && layer instanceof L.Layer && (visibility ? visibility[rawProperties.name] : rawProperties.visible)) {
 								layer.addTo(options.leafletMap);
 							}
 						}
@@ -30905,7 +30908,7 @@ L.gmx.createLayer = function(layerInfo, options) {
 
     if (!options) { options = properties; }
 
-		if (type in L.gmx._layerClasses) {
+	if (type in L.gmx._layerClasses) {
         try {
             layer = new L.gmx._layerClasses[type](options || layerInfo.properties);
             layer = layer.initFromDescription(layerInfo);
