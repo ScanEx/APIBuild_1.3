@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-3-4 06:49:26';
-var buildUUID = '25e440a292054560a15970ed5fdd495f';
+var buildDate = '2019-3-8 11:33:47';
+var buildUUID = '1d4ec4bb68584f01b54a7d7a88d7e5f8';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -15754,7 +15754,7 @@ var gmxAPIutils = {
 	},
     _searchApiScriptUrl: function(scr) {
 		var scriptRegexp = scr ? [
-			new RegExp('\b'+ scr + '\b')
+			new RegExp('\\b'+ scr + '\\b')
 		] : [
 			/\bleaflet-geomixer(-\w*)?\.js\b/,
 			/\bgeomixer(-\w*)?\.js\b/
@@ -15784,7 +15784,39 @@ var gmxAPIutils = {
 		}
         return '';
     },
-
+	urlKeys: function(url) {
+		var pars = {},
+			arr = url.split('?');
+		if (arr.length > 1) {
+			for (var i = 0, arr1 = arr[1].split('&'), len = arr1.length; i < len; i++) {
+				var arr2 = arr1[i].split('='),
+					key = arr2[0], val = arr2[1];
+				if (arr2.length < 2) {
+					val = key; key = '_glob';
+				}
+				pars[key] = val;
+			}
+		}
+		return pars;
+	},
+	searchScriptPars: function(scr) {
+		var scriptRegexp = scr ? [
+			new RegExp('\\b'+ scr + '\\b')
+		] : [
+			/\bleaflet-geomixer(-\w*)?\.js\b/,
+			/\bgeomixer(-\w*)?\.js\b/
+		];
+		var scripts = document.getElementsByTagName('script');
+		for (var i = 0, len = scripts.length; i < len; i++) {
+			var src = scripts[i].getAttribute('src');
+			for (var j = 0, len1 = scriptRegexp.length; j < len1; j++) {
+				if (scriptRegexp[j].exec(src)) {
+					return gmxAPIutils.urlKeys(src);
+				}
+			}
+		}
+		return null;
+	},
     createWorker: function(url)	{		// Создание Worker-а
         return new Promise(function(resolve, reject) {
 			if ('createImageBitmap' in window && 'Worker' in window) {
@@ -18792,6 +18824,9 @@ L.extend(L.gmxUtil, {
 	debug: gmxAPIutils.debug,
 	createWorker: gmxAPIutils.createWorker,
 	apiLoadedFrom: gmxAPIutils.apiLoadedFrom,
+	searchScriptPars: gmxAPIutils.searchScriptPars,
+	urlKeys: gmxAPIutils.urlKeys,
+
     newId: gmxAPIutils.newId,
 	isPageHidden: gmxAPIutils.isPageHidden,
     protocol: location.protocol !== 'https:' ? 'http:' : location.protocol,
@@ -23654,19 +23689,17 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
     onRemove: function(map) {
         var gmx = this._gmx,
 			dm = gmx.dataManager;
-        // if (dm) {
-			// dm.removeScreenObservers();
-		// }
 
 		if (gmx.labelsLayer) {	// удалить из labelsLayer
 			map._labelsLayer.remove(this);
 		}
+		this._invalidateAll();
 
 		//gmx.badTiles = {};
         gmx.quicklooksCache = {};
         gmx.rastersCache = {};
         delete gmx.map;
-        if (dm && !dm.getActiveObserversCount()) {
+		if (dm && !dm.getActiveObserversCount()) {
 			L.gmx.layersVersion.remove(this);
         }
         if (this._map) {
@@ -27595,15 +27628,15 @@ var layersVersion = {
     },
 
     remove: function(layer) {
+		var layerID = layer.options.layerID;
 		if (L.gmx.sendCmd) {
 			L.gmx.sendCmd('toggleDataSource', {
 				active: false,		// включить/выключить контроль источников
 				hostName: layer.options.hostName,
 				mapID: layer.options.mapID,
-				layerID: layer.options.layerID
+				layerID: layerID
 			});
 		}
-        delete layers[layer._gmx.layerID];
         var _gmx = layer._gmx,
 			pOptions = layer.options.parentOptions;
 		if (pOptions) {
@@ -27615,7 +27648,9 @@ var layersVersion = {
 					delete dataManagersLinks[pId];
 				}
 			}
-		} else {
+		}
+		if (!dataManagersLinks[layerID]) {
+			delete layers[layerID];
 			_gmx.dataManager.off('chkLayerUpdate', _gmx._chkVersion);
 		}
     },
@@ -27635,17 +27670,17 @@ var layersVersion = {
 			}
 			L.gmx.sendCmd('toggleDataSource', opt);
 		}
-        if (id in layers) {
+		if (id in layers) {
             return;
 		}
 
-        var _gmx = layer._gmx,
-            prop = _gmx.properties;
-        if ('LayerVersion' in prop) {
-            layers[id] = layer;
-            _gmx._chkVersion = function () {
-                chkVersion(layer);
-            };
+		var _gmx = layer._gmx,
+			prop = _gmx.properties;
+		if ('LayerVersion' in prop) {
+			layers[id] = layer;
+			_gmx._chkVersion = function () {
+				chkVersion(layer);
+			};
             _gmx.dataManager.on('chkLayerUpdate', _gmx._chkVersion);
 			var pOptions = layer.options.parentOptions;
 			if (pOptions) {
