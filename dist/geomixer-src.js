@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-3-8 11:33:47';
-var buildUUID = '1d4ec4bb68584f01b54a7d7a88d7e5f8';
+var buildDate = '2019-3-10 20:14:22';
+var buildUUID = '82fa105f854b43338437214c87f27f75';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -34713,10 +34713,14 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 				latlngs = this.points._latlngs[0],
                 prev = latlngs[num - 1],
                 curr = latlngs[num] || downAttr.latlng,
-				_parts = this.points._parts[0];
+				_parts = this.points._parts[0],
+				angle = L.GeometryUtil.computeAngle(_parts[num - 1], _parts[num] || downAttr.layerPoint);
+			angle += 90;
+			angle %= 360;
+			angle += angle < 0 ? 360 : 0;
 			return {
 				length: L.gmxUtil.distVincenty(prev.lng, prev.lat, curr.lng, curr.lat),
-				angle: L.gmxUtil.formatDegrees(90 + L.GeometryUtil.computeAngle(_parts[num - 1], _parts[num] || downAttr.layerPoint), 0)
+				angle: L.gmxUtil.formatDegrees(angle, 0)
 			};
 		}
         return null;
@@ -37069,16 +37073,18 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
             eng: 'Satellite',
             overlayColor: '#ffffff',
             icon: iconPrefix + 'basemap_satellite.png'
-        },{
-            mapID: mapID,
-            layerID: '16942D64977B43B98F88F5FC79BA6756', // bing virtual
-            type: 'bingSatellite',
-            rus: 'Спутник (Bing)',
-            eng: 'Aerial (Bing)',
-            overlayColor: '#ffffff',
-            icon: iconPrefix + 'basemap_Bing_ico.png',
-			attribution: copyrights.bing
-		}];
+        }
+		// ,{
+            // mapID: mapID,
+            // layerID: '16942D64977B43B98F88F5FC79BA6756', // bing virtual
+            // type: 'bingSatellite',
+            // rus: 'Спутник (Bing)',
+            // eng: 'Aerial (Bing)',
+            // overlayColor: '#ffffff',
+            // icon: iconPrefix + 'basemap_Bing_ico.png',
+			// attribution: copyrights.bing
+		// }
+		];
 
         if (lang === 'rus') {
             baseLayers['2GIS'] = {
