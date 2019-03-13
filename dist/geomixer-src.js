@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-3-10 20:14:22';
-var buildUUID = '82fa105f854b43338437214c87f27f75';
+var buildDate = '2019-3-13 12:54:07';
+var buildUUID = '7fc89fcb404840bcbacd3205f3bdd2e5';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -23612,15 +23612,15 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 					if (this.options.minZoom !== gmx.styleManager.minZoom || this.options.maxZoom !== gmx.styleManager.maxZoom) {
 						this.options.minZoom = gmx.styleManager.minZoom;
 						this.options.maxZoom = gmx.styleManager.maxZoom;
-						this._map._updateZoomLevels();
+						this._resetView();
+						// this._map._updateZoomLevels();
 					}
 					if (gmx.labelsLayer) {
 						this._map._labelsLayer.add(this);
 					} else if (!gmx.labelsLayer) {
 						this._map._labelsLayer.remove(this);
 					}
-					// this.redraw();
-					this.repaint();
+					// this.repaint();
 					this._chkTiles(true);
 				}
 			},
@@ -23919,7 +23919,6 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
         this._initPromise.then(function() {
             this._gmx.styleManager.setStyle(style, num, createFlag).then(function () {
                 this.fire('stylechange', {num: num || 0});
-                this.repaint();
             }.bind(this));
         }.bind(this));
         return this;
@@ -25680,15 +25679,15 @@ StyleManager.prototype = {
     },
 
     //is any style is visible at given zoom?
-    isVisibleAtZoom: function(zoom) {
-        for (var i = 0, len = this._styles.length; i < len; i++) {
-            var style = this._styles[i];
-            if (zoom >= style.MinZoom && zoom <= style.MaxZoom) {
-                return true;
-            }
-        }
-        return false;
-    },
+	isVisibleAtZoom: function(zoom) {
+		for (var i = 0, len = this._styles.length; i < len; i++) {
+			var style = this._styles[i];
+			if (zoom >= style.MinZoom && zoom <= style.MaxZoom) {
+				return true;
+			}
+		}
+		return false;
+	},
 
     getIcons: function(callback) {
         var _this = this;
@@ -25716,6 +25715,7 @@ StyleManager.prototype = {
         if (this._needLoadIcons < 1) {
 			if (this.gmx.dataManager) {
 				this.gmx.dataManager.addFilter('styleFilter', this._chkStyleFilter.bind(this));
+				this.gmx.dataManager.addFilter('labelFilter', this._chkStyleFilterLabels.bind(this));
 			}
             this.resolve();
         }
@@ -25908,6 +25908,19 @@ StyleManager.prototype = {
             if (!gmx.multiFilters) { break; }
         }
         return out;
+    },
+
+    _chkStyleFilterLabels: function(item) {
+        var st = this._styles[item.currentFilter];
+		if (st) {
+			var z = this.gmx.currentZoom,
+				minZoom = st.labelMinZoom || st.MinZoom,
+				maxZoom = st.labelMaxZoom || st.MaxZoom;
+            if (!st.disabled && z <= maxZoom && z >= minZoom) {
+                return true;
+            }
+		}
+		return false;
     },
 
     _chkStyleFilter: function(item) {
@@ -26143,6 +26156,9 @@ StyleManager.prototype = {
             RenderStyle: (style.RenderStyle ? this._parseStyle(L.gmxUtil.fromServerStyle(style.RenderStyle)) : {}),
             version: ++this._maxVersion
         };
+        pt.labelMinZoom = style.labelMinZoom || pt.MinZoom;
+        pt.labelMaxZoom = style.labelMaxZoom || pt.MaxZoom;
+
         pt.DisableBalloonOnMouseMove = style.DisableBalloonOnMouseMove === false ? false : true;
         pt.DisableBalloonOnClick = style.DisableBalloonOnClick || false;
 
@@ -26321,7 +26337,7 @@ StyleManager.prototype = {
 StyleManager.MAX_STYLE_SIZE = 256;
 //StyleManager.DEFAULT_STYLE = {outline: {color: 255, thickness: 1}, marker: {size: 8, circle: true}};
 StyleManager.DEFAULT_STYLE = {outline: {color: 255, thickness: 1}, marker: {size: 8}};
-StyleManager.DEFAULT_KEYS = ['Name', 'MinZoom', 'MaxZoom', 'Balloon', 'BalloonEnable', 'DisableBalloonOnMouseMove', 'DisableBalloonOnClick', 'disabled'];
+StyleManager.DEFAULT_KEYS = ['Name', 'MinZoom', 'labelMinZoom', 'MaxZoom', 'labelMaxZoom', 'Balloon', 'BalloonEnable', 'DisableBalloonOnMouseMove', 'DisableBalloonOnClick', 'disabled'];
 StyleManager.DEFAULT_ICONPATH = [0, 10, 5, -10, -5, -10, 0, 10];  // [TL.x, TL.y, BR.x, BR.y, BL.x, BL.y, TL.x, TL.y]
 StyleManager.DEFAULT_STYLE_KEYS = [
 	'iconUrl', 'iconAngle', 'iconSize', 'iconScale', 'iconMinScale', 'iconMaxScale', 'iconCircle', 'iconCenter', 'iconAnchor', 'iconColor',	// для иконок
@@ -28120,7 +28136,8 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 
         var addObserver = function (layer, id) {
             var gmx = layer._gmx,
-                filters = ['clipFilter', 'clipPointsFilter', 'styleFilter', 'userFilter'],
+				dm = gmx.dataManager,
+                filters = ['clipFilter', 'clipPointsFilter', 'styleFilter', 'labelFilter', 'userFilter'],
                 options = {
                     type: 'resend',
                     bbox: _this.bbox,
@@ -28133,7 +28150,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
             if (gmx.beginDate && gmx.endDate) {
                 options.dateInterval = [gmx.beginDate, gmx.endDate];
             }
-            return gmx.dataManager.addObserver(options, '_Labels_' + id);
+            return dm.addObserver(options, '_Labels_' + id);
         };
         this.add = function (layer) {
             var id = layer._leaflet_id,
@@ -28152,9 +28169,9 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 							this.setDateInterval(dInterval.beginDate, dInterval.endDate);
 						}, observer);
                     }
-                    if (!gmx.styleManager.isVisibleAtZoom(_zoom)) {
-                        observer.deactivate();
-                    }
+					if (!gmx.styleManager.isVisibleAtZoom(_zoom)) {
+						observer.deactivate();
+					}
                     _this._observers[id] = observer;
                     _this._styleManagers[id] = gmx.styleManager;
 
@@ -28165,31 +28182,54 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
                 });
             }
         };
-        this.remove = function (layer) {
-            if (layer) {
-				var id = layer._leaflet_id;
-				if (_this._observers[id]) {
-					var gmx = layer._gmx,
-						dataManager = gmx.dataManager;
-					dataManager.removeObserver(_this._observers[id].id);
-					delete _this._observers[id];
-					delete _this._styleManagers[id];
-					delete _this._labels['_' + id];
-					delete _this._labelsIndex['_' + id];
-					_this.redraw();
-				}
-            }
-		};
-        this._layeradd = function (ev) {
-            _this.add(ev.layer);
-        };
-        this._layerremove = function (ev) {
-            _this.remove(ev.layer);
-        };
+        // this.remove = function (layer) {
+            // if (layer) {
+				// var id = layer._leaflet_id;
+				// if (_this._observers[id]) {
+					// var gmx = layer._gmx,
+						// dataManager = gmx.dataManager;
+					// dataManager.removeObserver(_this._observers[id].id);
+					// delete _this._observers[id];
+					// delete _this._styleManagers[id];
+					// delete _this._labels['_' + id];
+					// delete _this._labelsIndex['_' + id];
+					// _this.redraw();
+				// }
+            // }
+		// };
+        // this._layeradd = function (ev) {
+			// if (ev.layer._gmx.dataManager) {
+				// _this.add(ev.layer);
+			// }
+        // };
+        // this._layerremove = function (ev) {
+            // _this.remove(ev.layer);
+        // };
     },
 
+    _layeradd: function (ev) {
+		var clayer = ev.layer,
+			gmx = clayer._gmx;
+		if (gmx && gmx.dataManager) {
+			this.add(clayer);
+		}
+   },
+    _layerremove: function (ev) {
+		var clayer = ev.layer,
+			id = clayer._leaflet_id,
+			gmx = clayer._gmx;
+		if (gmx && gmx.dataManager && this._observers[id]) {
+			gmx.dataManager.removeObserver(this._observers[id].id);
+			delete this._observers[id];
+			delete this._styleManagers[id];
+			delete this._labels['_' + id];
+			delete this._labelsIndex['_' + id];
+			this.redraw();
+		}
+	},
+
     redraw: function () {
-        if (!this._frame && !this._map._animating) {
+        if (!this._frame && this._map && !this._map._animating) {
             this._frame = L.Util.requestAnimFrame(this._redraw, this);
         }
         return this;
