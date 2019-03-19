@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-3-13 12:53:58';
-var buildUUID = '7fc89fcb404840bcbacd3205f3bdd2e5';
+var buildDate = '2019-3-19 10:24:20';
+var buildUUID = '512fc5fa0b1044aabc239b4f25c4f72c';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22869,6 +22869,8 @@ var DataManager = L.Class.extend({
 
     _chkProcessing: function(processing) {
 		this.processingTile = this.processingTile || this.addData([]);
+		this.processingTile.clear();
+
         var needProcessingFilter = false,
             skip = {},
             id, i, len, it;
@@ -22912,14 +22914,14 @@ var DataManager = L.Class.extend({
             }
         }
 
-        if (needProcessingFilter) {
+		if (needProcessingFilter) {
 			var processingTile = this.processingTile;
-            this.addFilter('processingFilter', function(item, tile) {
-                return tile.z === 0 || !(item.id in processingTile.itemsKeys || skip[item.id]);
-            });
-        } else if (this._filters['processingFilter']) {
-            this.removeFilter('processingFilter');
-        }
+			this.addFilter('processingFilter', function(item, tile) {
+				return tile.z === 0 || !(item.id in processingTile.itemsKeys || skip[item.id]);
+			});
+		} else if (this._filters['processingFilter']) {
+			this.removeFilter('processingFilter');
+		}
     },
 
 	_isUpdateded: function(a, b) {
@@ -23476,8 +23478,8 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 	},
 
     _onVersionChange: function () {
-        this._updateProperties(this._gmx.rawProperties);
-		//this._chkTiles();
+		this._updateProperties(this._gmx.rawProperties);
+		this._chkTiles(true);
     },
 
 	_waitCheckOldLevels: function () {
