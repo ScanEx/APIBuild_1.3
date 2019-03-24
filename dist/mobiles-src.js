@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-3-19 10:24:20';
-var buildUUID = '512fc5fa0b1044aabc239b4f25c4f72c';
+var buildDate = '2019-3-24 08:49:38';
+var buildUUID = '3b514e79fbbf49f7aca54a92c52f55ff';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22434,10 +22434,6 @@ var DataManager = L.Class.extend({
         if (!observer.isActive() && observer.id !== 'hover') {
             return [];
         }
-// if (L.gmx._animatingZoom) {
-// console.log('____ getItems', L.gmx._animatingZoom);
-	// return [];
-// }
 
         //add internal filters
         var layerID = observer.layerID,
@@ -22922,7 +22918,7 @@ var DataManager = L.Class.extend({
 		} else if (this._filters['processingFilter']) {
 			this.removeFilter('processingFilter');
 		}
-    },
+	},
 
 	_isUpdateded: function(a, b) {
 		if (a.length === b.length) {
@@ -23692,9 +23688,9 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
         var gmx = this._gmx,
 			dm = gmx.dataManager;
 
-		if (gmx.labelsLayer) {	// удалить из labelsLayer
-			map._labelsLayer.remove(this);
-		}
+		// if (gmx.labelsLayer) {	// удалить из labelsLayer
+			// map._labelsLayer.remove(this);
+		// }
 		this._invalidateAll();
 
 		//gmx.badTiles = {};
@@ -26288,9 +26284,7 @@ StyleManager.prototype = {
         if ('iconAnchor' in pt) {
             out.iconAnchor = pt.iconAnchor;
         }
-        if ('iconCenter' in pt) {
-            out.iconCenter = pt.iconCenter;
-        }
+		out.iconCenter = 'iconCenter' in pt ? pt.iconCenter : true;
 
         if (type === 'square' || type === 'polygon' || type === 'circle' || type === 'iconPath') {
             out.type = type;
@@ -26588,6 +26582,8 @@ StyleManager.decodeOldStyles = function(props) {
             MinZoom: it.MinZoom || 0,
             MaxZoom: it.MaxZoom || 18
         };
+		pt.labelMinZoom = it.labelMinZoom || pt.MinZoom;
+		pt.labelMaxZoom = it.labelMaxZoom || pt.MaxZoom;
 
         if ('Balloon' in it) {
             pt.Balloon = it.Balloon;
@@ -28013,6 +28009,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 
     initialize: function (map, options) {
         L.setOptions(this, L.extend(this.options, options));
+        this._map = map;
         this._observers = {};
         this._styleManagers = {};
         this._labels = {};
@@ -28245,7 +28242,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
     },
 
     onAdd: function (map) {
-        this._map = map;
+        // this._map = map;
 
         if (!this._canvas) {
             this._initCanvas();
