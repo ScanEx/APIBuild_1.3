@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-3-24 08:49:47';
-var buildUUID = '3b514e79fbbf49f7aca54a92c52f55ff';
+var buildDate = '2019-4-11 12:41:59';
+var buildUUID = 'da67e425316b407ebddfaaecdd5c6856';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -16799,7 +16799,7 @@ var gmxAPIutils = {
             }
             ctx.fill();
         }
-        if (currentStyle.strokeStyle) {
+        if (currentStyle.strokeStyle && currentStyle.lineWidth) {
             ctx.beginPath();
             if (currentStyle.iconPath) {
                 gmxAPIutils.drawIconPath(currentStyle.iconPath, attr);
@@ -18204,6 +18204,7 @@ var gmxAPIutils = {
         }
     },
     styleFuncKeys: {
+        // iconUrl: 'iconUrlFunction',
         iconSize: 'iconSizeFunction',
         iconAngle: 'rotateFunction',
         iconScale: 'scaleFunction',
@@ -18213,7 +18214,14 @@ var gmxAPIutils = {
         color: 'colorFunction',
         fillColor: 'fillColorFunction'
     },
+    // styleFunc: {
+        // iconUrl: function() {
+			// console.log('styleFunc', arguments)
+			// return '';
+		// },
+    // },
     styleFuncError: {
+        // iconUrl: function() { return ''; },
         iconSize: function() { return 8; },
         iconAngle: function() { return 0; },
         iconScale: function() { return 1; },
@@ -18301,9 +18309,13 @@ var gmxAPIutils = {
                         var newKey = keys.client[i],
                             zn = st[key1];
                         if (typeof (zn) === 'string') {
+							// var func = gmxAPIutils.styleFunc[newKey];
+							// if (func) {
+								// styleOut[gmxAPIutils.styleFuncKeys[newKey]] = func;
+							// } else if (gmxAPIutils.styleFuncKeys[newKey]) {
                             if (gmxAPIutils.styleFuncKeys[newKey]) {
 /*eslint-disable no-useless-escape */
-                                if (zn.match(/[^\d\.]/) === null) {
+								if (zn.match(/[^\d\.]/) === null) {
 /*eslint-enable */
                                     zn = Number(zn);
                                 } else {
@@ -26081,6 +26093,7 @@ StyleManager.prototype = {
                             st[fkey] = renderStyle[fkey];
                         } else {
                             if (!this._parserFunctions[val]) {
+                                // this._parserFunctions[val] = gmxAPIutils.styleFunc[key] || L.gmx.Parsers.parseExpression(val);
                                 this._parserFunctions[val] = L.gmx.Parsers.parseExpression(val);
                             }
                             st[fkey] = this._parserFunctions[val];
@@ -26200,6 +26213,7 @@ StyleManager.prototype = {
             }
             out.rotate = rotateRes || 0;
         }
+
         if ('iconColor' in pt) {
             out.iconColor = pt.iconColorFunction ? pt.iconColorFunction(prop, indexes) : pt.iconColor;
         }
@@ -26208,7 +26222,10 @@ StyleManager.prototype = {
         }
         if (type === 'image') {
             out.type = type;
-            if (pt.iconUrl) { out.iconUrl = pt.iconUrl; }
+            if (pt.iconUrl) {
+				// out.iconUrl = pt.iconUrlFunction ? pt.iconUrlFunction(pt.iconUrl, prop, indexes) : pt.iconUrl;
+				out.iconUrl = pt.iconUrl;
+			}
             if (pt.image) { out.image = pt.image; }
         } else if (pt.fillRadialGradient) {
             var rgr = pt.fillRadialGradient,
@@ -26524,6 +26541,10 @@ StyleManager.decodeOldStyle = function(style) {   // Style Scanex->leaflet
 							styleOut.common = false;
 							L.extend(attrKeys, hash);
 						}
+						// var func = gmxAPIutils.styleFunc[newKey];
+						// if (func) {
+							// styleOut[gmxAPIutils.styleFuncKeys[newKey]] = func;
+						// } else
 						if (gmxAPIutils.styleFuncKeys[newKey]) {
 /*eslint-disable no-useless-escape */
 							if (zn.match(/[^\d\.]/) === null) {
@@ -28009,7 +28030,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 
     initialize: function (map, options) {
         L.setOptions(this, L.extend(this.options, options));
-        this._map = map;
+        this.__map = map;
         this._observers = {};
         this._styleManagers = {};
         this._labels = {};
@@ -28158,7 +28179,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
             if (!_this._observers[id] && gmx && gmx.labelsLayer && id) {
                 gmx.styleManager.promise.then(function () {
                     var observer = addObserver(layer, id),
-						_zoom = _this._map._zoom;
+						_zoom = _this.__map._zoom;
                     if (layer.options.isGeneralized) {
                         observer.targetZoom = _zoom;	//need update to current zoom
                     }
@@ -28181,21 +28202,21 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
                 });
             }
         };
-        // this.remove = function (layer) {
-            // if (layer) {
-				// var id = layer._leaflet_id;
-				// if (_this._observers[id]) {
-					// var gmx = layer._gmx,
-						// dataManager = gmx.dataManager;
-					// dataManager.removeObserver(_this._observers[id].id);
-					// delete _this._observers[id];
-					// delete _this._styleManagers[id];
-					// delete _this._labels['_' + id];
-					// delete _this._labelsIndex['_' + id];
-					// _this.redraw();
-				// }
-            // }
-		// };
+        this.remove = function (layer) {
+            if (layer) {
+				var id = layer._leaflet_id;
+				if (_this._observers[id]) {
+					var gmx = layer._gmx,
+						dataManager = gmx.dataManager;
+					dataManager.removeObserver(_this._observers[id].id);
+					delete _this._observers[id];
+					delete _this._styleManagers[id];
+					delete _this._labels['_' + id];
+					delete _this._labelsIndex['_' + id];
+					_this.redraw();
+				}
+            }
+		};
         // this._layeradd = function (ev) {
 			// if (ev.layer._gmx.dataManager) {
 				// _this.add(ev.layer);
@@ -28228,14 +28249,14 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 	},
 
     redraw: function () {
-        if (!this._frame && this._map && !this._map._animating) {
+        if (!this._frame && this.__map && !this.__map._animating) {
             this._frame = L.Util.requestAnimFrame(this._redraw, this);
         }
         return this;
     },
 
     _addToPane: function () {
-        var pane = this._map.getPanes()[this.options.pane];
+        var pane = this.__map.getPanes()[this.options.pane];
         if (pane) {
             pane.insertBefore(this._canvas, pane.firstChild);
         }
@@ -28287,14 +28308,14 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 
     _initCanvas: function () {
         var canvas = L.DomUtil.create('canvas', 'leaflet-labels-layer leaflet-layer leaflet-zoom-hide'),
-            size = this._map.getSize();
+            size = this.__map.getSize();
         canvas.width  = size.x; canvas.height = size.y;
         canvas.style.pointerEvents = 'none';
         this._canvas = canvas;
     },
 
     _updateBbox: function () {
-        var _map = this._map,
+        var _map = this.__map,
             screenBounds = _map.getBounds(),
             southWest = screenBounds.getSouthWest(),
             northEast = screenBounds.getNorthEast(),
@@ -28322,7 +28343,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
         for (var id in this._observers) {
             var observer = this._observers[id];
             if (!observer.isActive() &&
-                this._styleManagers[id].isVisibleAtZoom(this._map.getZoom())
+                this._styleManagers[id].isVisibleAtZoom(this.__map.getZoom())
             ) {
                 observer.activate();
             }
@@ -28335,7 +28356,7 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
 
     _redraw: function () {
         var out = [],
-            _map = this._map;
+            _map = this.__map;
 
 		if (!_map || !_map._mapPane) { return; }
 
@@ -28449,8 +28470,8 @@ L.LabelsLayer = (L.Layer || L.Class).extend({
         this._frame = null;
     },
     _animateZoom: function (e) {
-		var scale = this._map.getZoomScale(e.zoom),
-		    offset = this._map._latLngBoundsToNewLayerBounds(this._map.getBounds(), e.zoom, e.center).min;
+		var scale = this.__map.getZoomScale(e.zoom),
+		    offset = this.__map._latLngBoundsToNewLayerBounds(this.__map.getBounds(), e.zoom, e.center).min;
 		L.DomUtil.setTransform(this._canvas, offset, scale);
     }
 });
@@ -32528,6 +32549,7 @@ L.Control.GmxPopup = L.Control.extend({
 		maxWidth: 520,
 		minWidth: 20,
 		maxHeight: 400,
+        closeOnMapClick: true,
         draggable: true
     },
 
@@ -32541,7 +32563,9 @@ L.Control.GmxPopup = L.Control.extend({
 			this._initLayout();
 		}
 		this.update();
-        map.once('click', this.remove, this);
+		if (this.options.closeOnMapClick) {
+			map.once('click', this.remove, this);
+		}
         return this._container;
     },
 
