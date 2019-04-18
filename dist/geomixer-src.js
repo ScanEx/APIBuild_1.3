@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-4-15 11:47:07';
-var buildUUID = '25d554dcd0c7460bbccd69b64b20da29';
+var buildDate = '2019-4-18 09:59:23';
+var buildUUID = '88045482ae70463d97876c3f1d31d3f0';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -36873,6 +36873,18 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 rus: 'Пустая',
                 eng: 'Empty',
                 layers: []
+            },
+            mapTilerTopo: {
+                rus: 'MapTiler Topo',
+                eng: 'MapTiler Topo',
+                icon: iconPrefix + 'MapTiler_topo.png',
+                layers: [
+                    L.tileLayer(protocol + '//api.maptiler.com/maps/topo/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                        maxZoom: 22,
+                        //maxNativeZoom: 18,
+                        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>'
+                    })
+                ]
             },
             heatmap2018: {
                 rus: '0.5-0.3 m heatmap-2018',
