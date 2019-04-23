@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-4-18 09:59:23';
-var buildUUID = '88045482ae70463d97876c3f1d31d3f0';
+var buildDate = '2019-4-23 14:23:34';
+var buildUUID = '005c3549c3db414882cffd6d0e881785';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -32568,7 +32568,7 @@ L.Control.GmxPopup = L.Control.extend({
 		if (this.options.closeOnMapClick) {
 			map.once('click', this.remove, this);
 		}
-        return this._container;
+		return this._container;
     },
 
     openOn: function (map) {
@@ -32579,6 +32579,7 @@ L.Control.GmxPopup = L.Control.extend({
 
     remove: function () {
 		if (this._map) {
+			this._map.fire('removeControl', this);
 			if (L.Control.prototype.remove) {
 				L.Control.prototype.remove.call(this);
 			} else {
@@ -34748,7 +34749,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 		if (downAttr) {
 			var type = obj.text;
 			if (obj.callback) {
-				obj.callback(downAttr);
+				obj.callback(downAttr, this._parent);
 			} else if (type === 'Remove point') {
 				ring._removePoint(downAttr.num);
 			} else if (type === 'Save' || type === 'Move' || type === 'Rotate' || type === 'Rotate around Point') {
