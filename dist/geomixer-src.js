@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-4-23 14:23:34';
-var buildUUID = '005c3549c3db414882cffd6d0e881785';
+var buildDate = '2019-5-24 17:31:04';
+var buildUUID = '08a4d3b6abf94c91a0cf2b673e6ff7f3';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -27368,7 +27368,7 @@ L.gmx.VectorLayer.include({
 
 
 (function() {
-var delay = 20000,
+var delay = 60000,
     layers = {},
     dataManagersLinks = {},
     script = '/Layer/CheckVersion.ashx',
@@ -31045,6 +31045,7 @@ L.Map.addInitHook(function () {
             corners[key] = L.DomUtil.create('div', classNames[key], parent);
         }
     }
+	corners.document = document.body;
 });
 
 
@@ -36880,7 +36881,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 eng: 'MapTiler Topo',
                 icon: iconPrefix + 'MapTiler_topo.png',
                 layers: [
-                    L.tileLayer(protocol + '//api.maptiler.com/maps/topo/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                    L.tileLayer(protocol + '//api.maptiler.com/maps/3407453d-fafc-42ba-a25d-eb558f07cb4b/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '&sw=' + L.gmx._sw : ''), {
                         maxZoom: 22,
                         //maxNativeZoom: 18,
                         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>'
@@ -36965,7 +36966,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 eng: 'Map (MB)',
                 icon: iconPrefix + 'basemap_mapbox.png',
                 layers: [
-                    L.tileLayer(protocol + '//api.mapbox.com/styles/v1/kosmosnimki/' + (lang === 'rus' ? 'cjbezcu8cahzs2smq5fbvd7w4' : 'cjbf19w19283n2rqzovu9u2so') + '/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1Ijoia29zbW9zbmlta2kiLCJhIjoiY2lvbW1tNXN0MDAwdnc4bHg5ZWw2YXJtYSJ9.ON9Ovi3fuHc5RAipmLb2EQ', {
+                    L.tileLayer(protocol + '//api.mapbox.com/styles/v1/scanex/cjw0f6kjd0uji1cnyeo3r6a1h/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1Ijoic2NhbmV4IiwiYSI6ImNqdzBmM2hobjA5anozeXMyZml5ejM0NWMifQ._GA-4zY0uPQthnnWbv58aw', {
                         maxZoom: 22,
                         maxNativeZoom: 22,
                         attribution: '<a href="https://www.mapbox.com/about/maps/" target="_blank">© Mapbox</a> <a href="http://www.openstreetmap.org/about/" target="_blank">© OpenStreetMap</a>'
@@ -41817,11 +41818,11 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 					isFunction = typeof(urlFuncton) === 'function';
 
 				if (popupURLTemplate || isFunction) {
-					var url = isFunction ? urlFuncton(event) : L.Util.template(popupURLTemplate, {lat: latlng.lat, lng: latlng.lng});
+					var url1 = isFunction ? urlFuncton(event) : L.Util.template(popupURLTemplate, {lat: latlng.lat, lng: latlng.lng});
 					if (layer.metas.proxy === 'true') {
-						url = (L.gmx.gmxProxy || '//maps.kosmosnimki.ru/ApiSave.ashx') + '?WrapStyle=none&get=' + encodeURIComponent(url);
+						url1 = (L.gmx.gmxProxy || '//maps.kosmosnimki.ru/ApiSave.ashx') + '?WrapStyle=none&get=' + encodeURIComponent(url1);
 					}
-					fetch(url, {mode: 'cors'})
+					fetch(url1, {mode: 'cors'})
 						.then(function(resp) {
 							return resp.json();
 						})
@@ -41864,17 +41865,45 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 					// url += '&X=' + I + '&Y=' + J + '&QUERY_LAYERS=' + options.layers;
 					url += '&X=' + I + '&Y=' + J + '&INFO_FORMAT=' + info + '&QUERY_LAYERS=' + options.layers;
 
+					if (layer.metas.feature_count) {
+						url += '&feature_count=' + layer.metas.feature_count;
+					}
+					if (layer.metas.proxy === 'true') {
+						url = '//maps.kosmosnimki.ru/proxy?' + encodeURIComponent(url);
+					}
 					fetch(url, {mode: 'cors'})
 					.then(function(resp) { return resp.json(); })
 					.then(function(geoJSON) {
-						if (geoJSON.features[0]) {
-							var html = template(balloonTemplate, geoJSON.features[0].properties);
+						var items = geoJSON.features;
+						if (items.length) {
+							var curr = -1,
+								lastIndex = items.length - 1,
+								 setPage = function (prev) {
+									curr += prev ? -1 : 1;
+									if (curr > lastIndex) { curr = 0; }
+									else if (curr < 0) { curr = lastIndex; }
+									var it = items[curr],
+										div = L.DomUtil.create('div', 'wmsInfo');
+									div.innerHTML = '<div class="wmsInfo">\
+										<div class="paginate">\
+										<span class="left" style="visibility: ' + (curr > 0 ? 'visible' : 'hidden') + ';">&lt;</span>\
+										<span class="center">' + (it && it.id || '') + '</span>\
+										<span class="right" style="visibility: ' + (curr < lastIndex ? 'visible' : 'hidden') + ';">&gt;</span>\
+									</div>\
+									<div class="feature">' + template(balloonTemplate, it.properties) + '</div></div>';
+									var left = div.getElementsByClassName('left'),
+										right = div.getElementsByClassName('right');
+									L.DomEvent.on(left[0], 'click', function() {lastOpenedPopup.setContent(setPage(true));}, this);
+									L.DomEvent.on(right[0], 'click',  function() {lastOpenedPopup.setContent(setPage());}, this);
+									return div;
+								};
 							lastOpenedPopup = L.popup()
 								.setLatLng(event.latlng)
-								.setContent(html)
+								.setContent(setPage())
 								.openOn(this._map);
 						}
-					}.bind(this));
+					}.bind(this))
+					.catch(function(err) { console.warn(err); });
 				}
             }
 
