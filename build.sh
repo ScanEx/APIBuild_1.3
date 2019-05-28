@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-gulp gmx-pub
+jake
 
 read -p 'Press [Enter] key to continue...'

@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-5-24 17:31:04';
-var buildUUID = '08a4d3b6abf94c91a0cf2b673e6ff7f3';
+var buildDate = '2019-5-28 09:33:42';
+var buildUUID = 'ed52476c251943eba4903559b99f5090';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -41855,8 +41855,8 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 				} else {
 					var p = this._map.project(latlng),
 						tileSize = layer.options.tileSize,
-						I = p.x % tileSize,
-						J = p.y % tileSize,
+						I = Math.round(p.x % tileSize),
+						J = Math.round(p.y % tileSize),
 						tilePoint = p.divideBy(tileSize).floor(),
 						url = this.getTileUrl(tilePoint),
 						info = infoFormat || 'application/geojson';

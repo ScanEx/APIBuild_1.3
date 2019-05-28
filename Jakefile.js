@@ -16,7 +16,7 @@ function hint(msg, args) {
 }
 
 desc('Check Leaflet source for errors with ESLint');
-task('lint', {async: true}, hint('Checking for JS errors...', 'external/GMXVirtualTileLayer/GmxVirtualTileLayer.js --config build/eslintrc.json'));
+task('lint', {async: true}, hint('Checking for JS errors...', 'dist/geomixer-src.js --config build/eslintrc.json'));
 // task('lint', {async: true}, hint('Checking for JS errors...', 'src --config build/eslintrc.json'));
 
 desc('Combine and compress Leaflet-GeoMixer source files');
