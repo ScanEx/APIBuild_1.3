@@ -81,7 +81,8 @@ var apiFiles = [
 	},
 	{
 		key: 'GMXVirtualTileLayer',
-		js: ['GmxVirtualTileLayer.js']
+		js: ['GmxVirtualTileLayer.js'],
+		css: ['GmxVirtualTileLayer.css']
 	},
 	{
 		key: 'Leaflet.rastersBgTiles',

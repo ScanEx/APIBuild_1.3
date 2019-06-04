@@ -1481,6 +1481,26 @@
 	line-height: 30px;
 	}
 
+.wmsInfo div.paginate {
+    text-align: center;
+    margin-bottom: 12px;
+}
+.wmsInfo span.left, .wmsInfo span.right {
+	cursor: pointer;
+    color: #2372B9;
+    font-weight: bold;
+    font-size: large;
+}
+.wmsInfo span.left {
+    padding-right: 10px;
+}
+.wmsInfo span.right {
+    padding-left: 10px;
+}
+.wmsInfo span.center {
+    font-weight: bold;
+}
+
 .webGLFilters  {
 	vertical-align: super;
 }
