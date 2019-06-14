@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-6-4 09:28:31';
-var buildUUID = '96f47c8b3a27434482aa219a2a05bcc2';
+var buildDate = '2019-6-14 05:52:30';
+var buildUUID = 'bba97d71d71744c2a47de3f1fd3d1bfd';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -41886,13 +41886,13 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 										div = L.DomUtil.create('div', 'wmsInfo');
 									div.innerHTML = '<div class="wmsInfo">\
 										<div class="paginate">\
-										<span class="left" style="visibility: ' + (curr > 0 ? 'visible' : 'hidden') + ';">&lt;</span>\
-										<span class="center">' + (it && it.id || '') + '</span>\
-										<span class="right" style="visibility: ' + (curr < lastIndex ? 'visible' : 'hidden') + ';">&gt;</span>\
+										<span class="icon-left-open" style="visibility: ' + (curr > 0 ? 'visible' : 'hidden') + ';"></span>\
+										<span class="center"><b>' + (curr + 1) + '</b> из <b>' + (lastIndex + 1) + '</b></span>\
+										<span class="icon-right-open" style="visibility: ' + (curr < lastIndex ? 'visible' : 'hidden') + ';"></span>\
 									</div>\
 									<div class="feature">' + template(balloonTemplate, it.properties) + '</div></div>';
-									var left = div.getElementsByClassName('left'),
-										right = div.getElementsByClassName('right');
+									var left = div.getElementsByClassName('icon-left-open'),
+										right = div.getElementsByClassName('icon-right-open');
 									L.DomEvent.on(left[0], 'click', function() {lastOpenedPopup.setContent(setPage(true));}, this);
 									L.DomEvent.on(right[0], 'click',  function() {lastOpenedPopup.setContent(setPage());}, this);
 									return div;
