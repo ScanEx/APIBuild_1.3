@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-7-16 14:35:35';
-var buildUUID = '366d69a3c9bf42d2ae41f44cea70e101';
+var buildDate = '2019-7-23 15:51:35';
+var buildUUID = '120c214bc7c14aefa0110de125353aa5';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -22685,10 +22685,24 @@ var DataManager = L.Class.extend({
     _getItemArrByActiveTileKeys: function(id, firstOnly) {
         var arr = [];
 		for (var key in this._activeTileKeys) {    // get full object bounds
-			var tile = this._tiles[key].tile;
-			if (tile.data && id in tile.itemsKeys) {
-				arr.push(tile.dataOptions[tile.itemsKeys[id]]);
-				if (firstOnly) { break; }
+			var tile = this._tiles[key].tile,
+				dopt;
+			if (tile.data) {
+				if (tile.processing) {
+					for (var i =0, len = tile.dataOptions.length; i < len; i++) {
+						dopt = tile.dataOptions[i];
+						if (dopt.id === id) {
+							arr.push(dopt);
+							if (firstOnly) { return arr; }
+						}
+					}
+				} else if (id in tile.itemsKeys) {
+					dopt = tile.dataOptions[tile.itemsKeys[id]];
+					if (dopt.id === id) {
+						arr.push(dopt);
+						if (firstOnly) { break; }
+					}
+				}
 			}
 		}
 		return arr;
@@ -22700,7 +22714,8 @@ var DataManager = L.Class.extend({
     },
 
     getItemMembers: function(id) {
-		var members = this._getItemArrByActiveTileKeys(id).map(function(it) {
+		var arr = this._getItemArrByActiveTileKeys(id);
+		var members = arr.map(function(it) {
 			var props = it.properties,
 				bbox = it.bounds;
 			return {
@@ -27100,16 +27115,16 @@ L.gmx.VectorLayer.include({
                 idr = geoItem[0],
                 dataOption = geoItems[i].dataOption || {},
                 item = geoItems[i],
-
+				parsedStyleKeys = item.parsedStyleKeys || {},
                 // item = gmx.dataManager.getItem(idr),
-                currentStyle = item.currentStyle || item.parsedStyleKeys || {},
+                currentStyle = item.currentStyle || parsedStyleKeys || {},
                 iconScale = currentStyle.iconScale || 1,
                 iconCenter = currentStyle.iconCenter,
                 iconAnchor = !iconCenter && currentStyle.iconAnchor ? currentStyle.iconAnchor : null,
                 parsedStyle = gmx.styleManager.getObjStyle(item),
                 lineWidth = currentStyle.lineWidth || parsedStyle.lineWidth || parsedStyle.weight || 0,
-                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || parsedStyle.iconSize || 0),
-                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || parsedStyle.iconSize || 0),
+                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || parsedStyle.iconSize || item.parsedStyleKeys.sx || 0),
+                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || parsedStyle.iconSize || item.parsedStyleKeys.sy || 0),
                 offset = [
                     iconScale * sx / 2,
                     iconScale * sy / 2
