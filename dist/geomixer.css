@@ -1158,6 +1158,12 @@
 .leaflet-gmx-logo-color.leaflet-gmx-logo-color-shift {
     bottom: 12px;
 }
+a.leaflet-control.leaflet-gmx-logo {
+    background-image: url("img/scanex_en.png");
+	background-repeat: no-repeat;
+	bottom: -9px;
+    height: 18px;
+}
 
 
 .leaflet-gmx-sidebar {

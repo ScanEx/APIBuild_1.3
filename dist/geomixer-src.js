@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-8-6 13:07:47';
-var buildUUID = '2d16c92526044c9c89e5895ee0e83310';
+var buildDate = '2019-9-4 10:05:27';
+var buildUUID = '3cf6274513a94269beef38449d95d4f0';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -25303,11 +25303,25 @@ ScreenVectorTile.prototype = {
 			var result = function() {
 				resolve({count: geoItems.length});
 			}.bind(this);
+			var _this = this;
 
 			this._uniqueID++;       // count draw attempt
 
 			if (geoItems) {
-				if (this.layer._gridClusters && this.layer._gridClusters.checkData({
+				var tile = _this.tile,
+					ctx = tile.getContext('2d'),
+					ts = this.layer.options.tileSize;
+				if (this.layer._webGLRenderer) {
+					this.tile.width = this.tile.height = ts;
+					this.layer._webGLRenderer({
+						topLeft: _this.topLeft,
+						tile: tile,
+						ctx: ctx,
+						geoItems: geoItems
+					});
+					result();
+					return;
+				} else if (this.layer._gridClusters && this.layer._gridClusters.checkData({
 						geoItems: geoItems,
 						tileElem: this.tileElem,
 						layer: this.layer
@@ -33074,7 +33088,9 @@ L.Control.GmxLogo = L.Control.extend({
         this._container = container;
         if (this.options.notHide) { container._notHide = true; }
         container.id = this.options.id;
-        container.setAttribute('href', 'http://geomixer.ru');
+        var url = '//scanex.ru/' + (L.gmxLocale && L.gmxLocale.getLanguage() === 'rus' ? '' : 'en/');
+
+        container.setAttribute('href', url);
         container.setAttribute('target', '_blank');
 
         this._logoPrefix = 'leaflet-gmx-logo' + (this.options.type ? '-' + this.options.type : '');
@@ -36930,9 +36946,9 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
             maptiler: {
                 rus: 'Карта (MapTiler)',
                 eng: 'Map (MapTiler)',
-                icon: iconPrefix + 'basemap_MapTiler.png',
+                icon: iconPrefix + 'basemap_MapTiler_' + (lang === 'rus' ? '' : '-en') + '.png',
                 layers: [
-                    L.tileLayer(protocol + '//api.maptiler.com/maps/b186f31f-52fa-4ace-a436-a5a9efc75e5c/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                    L.tileLayer(protocol + '//api.maptiler.com/maps/' + (lang === 'rus' ? 'd5f3302f-dbe3-4260-bf35-9c8b99cba27a' : '888774d2-130d-4bc0-bd22-3d385c8b3f33') + '/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
                         maxZoom: 22,
                         maxNativeZoom: 18,
                         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>'
