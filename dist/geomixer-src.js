@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-9-4 10:05:27';
-var buildUUID = '3cf6274513a94269beef38449d95d4f0';
+var buildDate = '2019-10-8 10:30:03';
+var buildUUID = '85d87bf547c4438aa30e666488b15db0';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -24629,6 +24629,7 @@ function ScreenVectorTile(layer, tileElem) {
 	this.tilePoint = tilePoint;
     this.zoom = zoom;
     this.gmx = layer._gmx;
+    this.meta = this.gmx.rawProperties.MetaProperties;
     this.zKey = this.layer._tileCoordsToKey(tilePoint, zoom);
     this.worldWidthMerc = utils.worldWidthMerc;
 
@@ -25130,7 +25131,7 @@ ScreenVectorTile.prototype = {
     },
 
     _getVisibleItems: function (geoItems) {
-        if (geoItems.length < 2) {
+        if (geoItems.length < 2 || this.meta.RCBackgroundTransparent.Value === 'true') {
 			this.itemsView = geoItems;
             return geoItems;
         }
@@ -42036,7 +42037,7 @@ L.gmx.addLayerClass('TiledRaster', GmxVirtualTileLayer);
 var GmxVirtualWMSLayer = function(/*options*/) {}
 
 GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
-    var WMS_OPTIONS = ['layers', 'styles', 'format', 'transparent', 'version', 'minZoom', 'maxZoom', 'tileSize', 'f', 'bboxSR', 'imageSR', 'size'];
+    var WMS_OPTIONS = ['crossOrigin', 'layers', 'styles', 'format', 'transparent', 'version', 'minZoom', 'maxZoom', 'tileSize', 'f', 'bboxSR', 'imageSR', 'size'];
     var WMS_OPTIONS_PROCESSORS = {tileSize: parseInt};
     var props = layerDescription.properties,
         meta = props.MetaProperties,
