@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-10-9 16:43:10';
-var buildUUID = 'e590e44db3c949759f317130759d631c';
+var buildDate = '2019-10-11 17:51:12';
+var buildUUID = '5571dd94095247b4bf677c09274984e9';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -34756,6 +34756,21 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
     },
 
     _toggleBboxClass: function (ev) {
+		if (ev.type === 'keydown' && this.mode === 'add') {
+			var key = ev.key,
+				points = this._getLatLngsArr();
+
+			if (key === 'Backspace') {
+				this._legLength = [];
+				points.splice(points.length - 1, 1);
+                this._setPoint(points[0], 0);
+			}
+            if (key === 'Escape' || points.length < 2) {
+                this._parent.remove(this);
+				this._parent._parent._clearCreate();
+				this._fireEvent('drawstop');
+			}
+		}
 		if (this.bbox) {
 			var flagRotate = this._needRotate;
 			if (!ev.altKey) { flagRotate = !flagRotate; }
