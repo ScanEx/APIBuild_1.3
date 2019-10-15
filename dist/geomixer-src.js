@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-10-14 10:34:22';
-var buildUUID = '4d95f1e6d6574010b32587ec26d808a7';
+var buildDate = '2019-10-15 11:37:51';
+var buildUUID = 'd4571f3ee3464a1fa45472299ada8196';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20703,6 +20703,9 @@ var gmxMap = L.Class.extend({
 					if ('parentLayer' in meta) {      	// todo удалить после изменений вов вьювере
 						layerOptions.parentLayer = meta.parentLayer.Value || '';
 					}
+					if ('hostName' in meta) {
+						layerOptions.hostName = meta.hostName.Value || '';
+					}
 					dataSources[options.layerID] = {
 						info: layerInfo,
 						options: layerOptions
@@ -20770,6 +20773,7 @@ var gmxMap = L.Class.extend({
 								pId = props.name;
 
 							props.tiles = [];
+							props.skipTiles = _skipTiles;
 							props.srs = _srs;
 							props.ftc = _ftc;
 							var dataManager = _this.addDataManager(it);
@@ -20779,6 +20783,7 @@ var gmxMap = L.Class.extend({
 									pt.options.parentOptions = it.properties;
 									pt.options.dataManager = dataManager;
 									pt.info.properties.tiles = [];	// Шумилов должен убрать
+									pt.info.properties.skipTiles = _skipTiles;
 									pt.info.properties.srs = _srs;
 									pt.info.properties.ftc = _ftc;
 									_this.addLayer(L.gmx.createLayer(pt.info, pt.options));
@@ -22254,6 +22259,7 @@ var DataManager = L.Class.extend({
         } else {
 			this._clearProcessing();
 		}
+		options.needBbox = options.needBbox || options.skipTiles === 'All';
         L.setOptions(this, options);
         this.optionsLink = options;
         this._isTemporalLayer = this.options.Temporal;
@@ -24020,8 +24026,8 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
         //check that something changed
         if (!gmx.beginDate !== !beginDate ||
             !gmx.endDate !== !endDate ||
-            beginDate && (gmx.beginDate.valueOf() !== beginDate.valueOf()) ||
-            endDate && (gmx.endDate.valueOf() !== endDate.valueOf())
+            (beginDate && gmx.beginDate && (gmx.beginDate.valueOf() !== beginDate.valueOf())) ||
+            (endDate && gmx.endDate && (gmx.endDate.valueOf() !== endDate.valueOf()))
         ) {
             if (gmx.rawProperties.maxShownPeriod && beginDate) {
                 var msecPeriod = gmx.rawProperties.maxShownPeriod * 24 * 3600 * 1000;
