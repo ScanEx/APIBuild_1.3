@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-10-15 11:37:51';
-var buildUUID = 'd4571f3ee3464a1fa45472299ada8196';
+var buildDate = '2019-10-18 18:54:06';
+var buildUUID = '8fc13d91d9a548fa8a93c7b0016653ce';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20374,8 +20374,11 @@ var gmxSessionManager = {
     requestSessionKey: function(serverHost, apiKey) {
         var keys = this._sessionKeys;
 
-        if (!(serverHost in keys)) {
-            apiKey = typeof apiKey === 'undefined' ? this._searchScriptAPIKey() : apiKey;
+		if (!(serverHost in keys)) {
+			apiKey = typeof apiKey === 'undefined' ? this._searchScriptAPIKey() : apiKey;
+			if (!apiKey) {
+				return new Promise(function(resolve) { resolve(); });
+			}
             keys[serverHost] = new Promise(function(resolve, reject) {
 				if (apiKey) {
 					var url = L.gmxUtil.protocol + '//' + serverHost + '/ApiKey.ashx?WrapStyle=None&Key=' + apiKey,
@@ -20390,18 +20393,6 @@ var gmxSessionManager = {
 					fetch(url, {mode: 'cors'})
 					.then(function(resp) { return resp.json(); })
 					.then(storeKey);
-					// gmxAPIutils.requestJSONP(L.gmxUtil.protocol + '//' + serverHost + '/ApiKey.ashx',
-						// {
-							// WrapStyle: 'func',
-							// Key: apiKey
-						// }
-					// ).then(function(response) {
-						// if (response && response.Status === 'ok') {
-							// resolve(response.Result.Key);
-						// } else {
-							// reject();
-						// }
-					// }, reject);
 				} else {
 					resolve('');
 				}
@@ -20706,6 +20697,9 @@ var gmxMap = L.Class.extend({
 					if ('hostName' in meta) {
 						layerOptions.hostName = meta.hostName.Value || '';
 					}
+					if ('apiKey' in meta) {
+						layerOptions.apiKey = meta.apiKey.Value || '';
+					}
 					dataSources[options.layerID] = {
 						info: layerInfo,
 						options: layerOptions
@@ -20755,7 +20749,12 @@ var gmxMap = L.Class.extend({
 				for (id in hosts[host]) {
 					arr.push({Layer: id});
 				}
-				loaders.push(L.gmxUtil.requestJSONP(prefix + '/Layer/GetLayerJson.ashx',
+
+				if (window.apiKey && host === 'maps.kosmosnimki.ru') {
+					loaders.push(gmxSessionManager.requestSessionKey(host, window.apiKey));
+				}
+				loaders.push(
+					L.gmxUtil.requestJSONP(prefix + '/Layer/GetLayerJson.ashx',
 					{
 						WrapStyle: 'func',
 						skipTiles: _skipTiles,
@@ -20764,43 +20763,47 @@ var gmxMap = L.Class.extend({
 						Layers: JSON.stringify(arr)
 					},
 					{
+						host: host,
 						ids: hosts[host]
 					}
-				).then(function(json, opt) {
-					if (json && json.Status === 'ok' && json.Result) {
-						json.Result.forEach(function(it) {
-							var props = it.properties,
-								pId = props.name;
+					).then(function(json, opt) {
+						if (json && json.Status === 'ok' && json.Result) {
+							json.Result.forEach(function(it) {
+								var props = it.properties,
+									pId = props.name;
 
-							props.tiles = [];
-							props.skipTiles = _skipTiles;
-							props.srs = _srs;
-							props.ftc = _ftc;
-							var dataManager = _this.addDataManager(it);
-							if (opt && opt.ids && opt.ids[pId]) {
-								opt.ids[pId].forEach(function(id) {
-									var pt = dataSources[id];
-									pt.options.parentOptions = it.properties;
-									pt.options.dataManager = dataManager;
-									pt.info.properties.tiles = [];	// Шумилов должен убрать
-									pt.info.properties.skipTiles = _skipTiles;
-									pt.info.properties.srs = _srs;
-									pt.info.properties.ftc = _ftc;
-									_this.addLayer(L.gmx.createLayer(pt.info, pt.options));
-								});
-							}
-						});
-					} else {
-						console.info('Error: loading ', prefix + '/Layer/GetLayerJson.ashx', json.ErrorInfo);
-						if (opt && opt.ids) {
-							for (var pId in opt.ids) {
-								opt.ids[pId].forEach(function(id) {
-									_this.addLayer(new L.gmx.DummyLayer(dataSources[id].info.properties));
-								});
+								props.tiles = [];
+								props.skipTiles = _skipTiles;
+								props.srs = _srs;
+								props.ftc = _ftc;
+								props.hostName = host;
+
+								var dataManager = _this.addDataManager(it);
+								if (opt && opt.ids && opt.ids[pId]) {
+									opt.ids[pId].forEach(function(id) {
+										var pt = dataSources[id];
+										pt.options.parentOptions = it.properties;
+										pt.options.dataManager = dataManager;
+										pt.info.properties.tiles = [];	// Шумилов должен убрать
+										pt.info.properties.skipTiles = _skipTiles;
+										pt.info.properties.srs = _srs;
+										pt.info.properties.ftc = _ftc;
+										_this.addLayer(L.gmx.createLayer(pt.info, pt.options));
+									});
+								}
+							});
+						} else {
+							console.info('Error: loading ', prefix + '/Layer/GetLayerJson.ashx', json.ErrorInfo);
+							if (opt && opt.ids) {
+								for (var pId in opt.ids) {
+									opt.ids[pId].forEach(function(id) {
+										_this.addLayer(new L.gmx.DummyLayer(dataSources[id].info.properties));
+									});
+								}
 							}
 						}
-					}
-				}));
+					})
+				);
 			}
 			Promise.all(loaders).then(resolve);
 		}.bind(this));
@@ -24438,6 +24441,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
             if (layerLink) {
                 gmx.rasterBGfunc = function(x, y, z, item, srs) {
                     var properties = item.properties,
+						sessionKey = gmx.sessionKey || gmx.dataManager.options.sessionKey,
 						url = L.gmxUtil.protocol + '//' + gmx.hostName
 							+ '/TileSender.ashx?ModeKey=tile&ftc=osm'
 							+ '&x=' + x
@@ -24446,7 +24450,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 					if (srs || gmx.srs) { url += '&srs=' + (srs || gmx.srs); }
 					if (gmx.crossOrigin) { url += '&cross=' + gmx.crossOrigin; }
 					url += '&LayerName=' + properties[layerLink];
-					if (gmx.sessionKey) { url += '&key=' + encodeURIComponent(gmx.sessionKey); }
+					if (sessionKey) { url += '&key=' + encodeURIComponent(sessionKey); }
 					if (L.gmx._sw && item.v) { url += '&sw=' + L.gmx._sw + '&v=' + item.v; }
                     return url;
                 };
@@ -25064,7 +25068,8 @@ ScreenVectorTile.prototype = {
 			}.bind(this));
 		}
 
-		if (gmx.sessionKey) { url += (url.indexOf('?') === -1 ? '?' : '&') + 'key=' + encodeURIComponent(gmx.sessionKey); }
+		var sessionKey = gmx.sessionKey || gmx.dataManager.options.sessionKey;
+		if (sessionKey) { url += (url.indexOf('?') === -1 ? '?' : '&') + 'key=' + encodeURIComponent(sessionKey); }
 
 		return new Promise(function(resolve1) {
 			var skipRaster = function(res) {
@@ -27893,12 +27898,13 @@ L.gmx.RasterLayer = L.gmx.VectorLayer.extend(
 					'TileSender.ashx?ModeKey=tile&ftc=osm' +
 					'&z=' + z +
 					'&x=' + x +
-					'&y=' + y;
+					'&y=' + y,
+				sessionKey = gmx.sessionKey || gmx.dataManager.options.sessionKey;
 			if (gmx.srs) { url += '&srs=' + gmx.srs; }
 			if (L.gmx._sw) { url += '&sw=' + L.gmx._sw; }
 			if (gmx.crossOrigin) { url += '&cross=' + gmx.crossOrigin; }
 			url += '&LayerName=' + gmx.layerID;
-			if (gmx.sessionKey) { url += '&key=' + encodeURIComponent(gmx.sessionKey); }
+			if (sessionKey) { url += '&key=' + encodeURIComponent(sessionKey); }
 			return url;
 		};
 
