@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-10-18 18:54:06';
-var buildUUID = '8fc13d91d9a548fa8a93c7b0016653ce';
+var buildDate = '2019-10-22 2:50:37 PM';
+var buildUUID = '5b48437311ad4a0391d50798c43cb33d';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -27567,6 +27567,7 @@ var chkVersion = function (layer, callback) {
                     if (curLayer._gmx && curLayer._gmx.properties.name === id && 'updateVersion' in curLayer) {	// слои
 						curLayer.updateVersion(item);
 					} else if (curLayer instanceof L.gmx.DataManager && curLayer.options.name === id) {	// источники данных
+						if (item.properties) { item.properties.needBbox = layersVersion.needBbox; }
 						curLayer.updateVersion(item.properties, item.tiles);
 					}
                 }
@@ -34844,6 +34845,7 @@ L.GmxDrawing.Ring = L.LayerGroup.extend({
 				this._fireEvent('drawstop');
 			} else if (type === 'Remove point') {
 				ring._removePoint(downAttr.num);
+				this._fireEvent('editstop', ev);
 			} else if (type === 'Save' || type === 'Move' || type === 'Rotate' || type === 'Rotate around Point') {
                 this._toggleRotate(type, downAttr);
 			} else if (type === 'Cancel' && this._editHistory.length) {
