@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-10-22 2:50:37 PM';
-var buildUUID = '5b48437311ad4a0391d50798c43cb33d';
+var buildDate = '2019-11-13 11:48:34 AM';
+var buildUUID = '4a3d30d6ca504f92b31b99004748db9f';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -25978,14 +25978,14 @@ StyleManager.prototype = {
 		return false;
     },
 
-    _chkStyleFilter: function(item) {
+    _chkStyleFilter: function(item, zoom) {
         var gmx = this.gmx,
             fnum = gmx.multiFilters ? -1 : item.currentFilter,
             curr = this._styles[fnum],
-            needParse = !curr || curr.version !== item.styleVersion,
-			zoom = gmx.currentZoom;
+            needParse = !curr || curr.version !== item.styleVersion;
+			// zoom = gmx.currentZoom;
 
-		// zoom = zoom || gmx.currentZoom;
+		zoom = zoom || gmx.currentZoom;
         if (needParse || item._lastZoom !== zoom) {
             item.currentFilter = -1;
             item.multiFilters = [];
