@@ -4,7 +4,7 @@
   "description": "GeoMixer API for Leaflet",
   "devDependencies": {
     "directory-exists": "~1.0.1",
-    "eslint": "^2.7.0",
+    "eslint": "^4.18.2",
     "file-exists": "~1.0.0",
     "jake": "^8.0.16",
     "ncp": "^1.0.1",
