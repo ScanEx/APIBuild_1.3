@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2019-11-13 11:48:34 AM';
-var buildUUID = '4a3d30d6ca504f92b31b99004748db9f';
+var buildDate = '2020-1-28 4:20:35 PM';
+var buildUUID = 'd78e33130d174d45b22c73be0211ac54';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -21195,11 +21195,13 @@ var gmxVectorTileLoader = {
 				var query = tileSenderPrefix + '&' + Object.keys(requestParams).map(function(name) {
 					return name + '=' + requestParams[name];
 				}).join('&');
+				var reqId = L.gmxUtil.loaderStatus(query);
 				fetch(query, {
 					mode: 'cors',
 					credentials: 'include'
 				})
 					.then(function(response) {
+						L.gmxUtil.loaderStatus(reqId, true);
 						if (response.status === 404) {
 							reject(response);
 							return '';
@@ -21229,7 +21231,9 @@ var gmxVectorTileLoader = {
 							});
 						}
 					})
-					.catch(console.log);
+					.catch(function(e) {
+						console.log('catch:', e);
+					});
 			});
             this._loadedTiles[key] = promise;
         }
@@ -22569,6 +22573,7 @@ var DataManager = L.Class.extend({
                 this._beginDate = newBeginDate;
                 this._endDate = newEndDate;
                 this._needCheckActiveTiles = true;
+				this.fire('onDateInterval', {beginDate: this._beginDate, endDate: this._endDate});
             }
         }
     },
@@ -27149,10 +27154,10 @@ L.gmx.VectorLayer.include({
                 iconScale = currentStyle.iconScale || 1,
                 iconCenter = currentStyle.iconCenter,
                 iconAnchor = !iconCenter && currentStyle.iconAnchor ? currentStyle.iconAnchor : null,
-                parsedStyle = gmx.styleManager.getObjStyle(item),
+                parsedStyle = gmx.styleManager.getObjStyle(item) || {},
                 lineWidth = currentStyle.lineWidth || parsedStyle.lineWidth || parsedStyle.weight || 0,
-                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || parsedStyle.iconSize || item.parsedStyleKeys.sx || 0),
-                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || parsedStyle.iconSize || item.parsedStyleKeys.sy || 0),
+                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || parsedStyle.iconSize || parsedStyleKeys.sx || 0),
+                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || parsedStyle.iconSize || parsedStyleKeys.sy || 0),
                 offset = [
                     iconScale * sx / 2,
                     iconScale * sy / 2
@@ -37259,13 +37264,37 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 ]
 			}
         };
-		baseLayers.relief = {
+		baseLayers.relief_old = {
 			rus: 'Рельеф RuMap',
 			eng: 'Relief',
 			icon: iconPrefix + 'basemap_terrain.png',
 			layers: [
 				tileLayerMercator(getURL('r'), {
 					// maxZoom: 25,
+					maxNativeZoom: 13,
+					gmxCopyright: [{
+						minZoom: 1,
+						maxZoom: 17,
+						attribution: copyrights.collinsbartholomew + _gtxt(', 2014', ', 2012')
+					}, {
+						minZoom: 1,
+						maxZoom: 17,
+						attribution: copyrights.geocenter + ', 2014'
+					}, {
+						minZoom: 1,
+						maxZoom: 17,
+						attribution: copyrights.cgiar + ', 2008'
+					}]
+				})
+			]
+		};
+		baseLayers.relief = {
+			rus: 'Рельеф&nbsp;Румап',
+			eng: 'Relief',
+			icon: iconPrefix + 'basemap_terrain1.png',
+			layers: [
+				L.tileLayer('//dtilecart.kosmosnimki.ru/rw' + '/{z}/{x}/{y}.png', {
+					//maxZoom: 25,
 					maxNativeZoom: 13,
 					gmxCopyright: [{
 						minZoom: 1,
@@ -37322,6 +37351,21 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
             eng: 'Satellite',
             overlayColor: '#ffffff',
             icon: iconPrefix + 'basemap_satellite.png'
+        },
+		{
+			mapID: mapID,
+            rus: 'MapTiler satellite',
+			layerID: 'F72B0C45B0F2425EA0A8DAF6D94EDC17'
+		},
+		{
+			mapID: mapID,
+			rus: 'Каталог мозаик SPOT6-7, 1.5м',
+			layerID: '2E06150F9C244A01B405DFB08B31A014'
+		},
+		{
+			mapID: mapID,
+			rus: 'MapTiler Streets',
+			layerID: '9438FD3C67224EFCBFE0512B36292A9F'
         }
 		// ,{
             // mapID: mapID,
@@ -37397,6 +37441,18 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 							layers: [clayer]
 						};
 				}
+				if (layerByLayerID[mapName]['F72B0C45B0F2425EA0A8DAF6D94EDC17'] &&
+					layerByLayerID[mapName]['2E06150F9C244A01B405DFB08B31A014'] &&
+					layerByLayerID[mapName]['9438FD3C67224EFCBFE0512B36292A9F']
+				) {
+					baseLayers.maptiler_hybrid.layers = [
+						layerByLayerID[mapName]['F72B0C45B0F2425EA0A8DAF6D94EDC17'],
+						layerByLayerID[mapName]['2E06150F9C244A01B405DFB08B31A014'],
+						layerByLayerID[mapName]['9438FD3C67224EFCBFE0512B36292A9F']
+					];
+				}
+				delete baseLayers[undefined];
+
 				for (var id in baseLayers) {
 					var baseLayer = baseLayers[id];
 					if (!baseLayer.rus) {
