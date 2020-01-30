@@ -663,6 +663,13 @@
 	display: inherit;
 }
 
+.leaflet-popup-content .paginate {
+    text-align: center;
+}
+.leaflet-popup-content .paginate .icon-left-open, .leaflet-popup-content .paginate .icon-right-open {
+    cursor: pointer;
+}
+
 /*
 .gmx-style-legend .prefixWrapper {
     min-width: 41px;

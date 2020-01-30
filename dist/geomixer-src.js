@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2020-1-28 4:20:35 PM';
-var buildUUID = 'd78e33130d174d45b22c73be0211ac54';
+var buildDate = '2020-1-30 3:05:31 PM';
+var buildUUID = '58c312aff2cd46be9e1d4f6b0a1b0282';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -17814,13 +17814,13 @@ var gmxAPIutils = {
      * @param {Boolean} mercFlag - true if resulting Geomixer object should has coordinates in Mercator projection
      * @return {Object} Geometry in GeoMixer format
     */
-    geoJSONtoGeometry: function (geoJSON, mercFlag) {
+    geoJSONtoGeometry: function (geoJSON, mercFlag, webmercFlag) {
         if (geoJSON.type === 'FeatureCollection') {
-            return gmxAPIutils.geoJSONtoGeometry(geoJSON.features[0], mercFlag);
+            return gmxAPIutils.geoJSONtoGeometry(geoJSON.features[0], mercFlag, webmercFlag);
         } else if (geoJSON.type === 'Feature') {
-            return gmxAPIutils.geoJSONtoGeometry(geoJSON.geometry, mercFlag);
+            return gmxAPIutils.geoJSONtoGeometry(geoJSON.geometry, mercFlag, webmercFlag);
         } else if (geoJSON.type === 'FeatureCollection') {
-            return gmxAPIutils.geoJSONtoGeometry(geoJSON.features[0], mercFlag);
+            return gmxAPIutils.geoJSONtoGeometry(geoJSON.features[0], mercFlag, webmercFlag);
         }
 
         var type = geoJSON.type === 'MultiPolygon' ? 'MULTIPOLYGON'
@@ -17832,7 +17832,7 @@ var gmxAPIutils = {
                 : geoJSON.type,
             coords = geoJSON.coordinates;
         if (mercFlag) {
-            coords = gmxAPIutils.coordsToMercator(geoJSON.type, coords);
+            coords = gmxAPIutils.coordsToMercator(geoJSON.type, coords, webmercFlag);
         }
         return {
             type: type,
@@ -23496,6 +23496,9 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
         if (options.crossOrigin) {
             this._gmx.crossOrigin = options.crossOrigin;
         }
+        if (('multiPopup' in window) && !('multiPopup' in options)) {
+            this.options.multiPopup = window.multiPopup;
+        }
 	},
 
     _onCreateLevel: function(level) {
@@ -24386,7 +24389,11 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
             if ('srs' in meta) {  		// проекция слоя
                 gmx.srs = meta.srs.Value || '';
             }
-            if ('parentLayer' in meta) {  // фильтр слоя		// todo удалить после изменений вов вьювере
+
+            if ('multiPopup' in meta) {  // многостраничный попап
+				this.options.multiPopup = meta.multiPopup.Value.toLowerCase() === 'true' ? true : false;
+            }
+            if ('parentLayer' in meta) {  // todo удалить после изменений вов вьювере
                 gmx.dataSource = meta.parentLayer.Value || '';
             }
             if ('filter' in meta) {  // фильтр слоя
@@ -24447,6 +24454,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
                 gmx.rasterBGfunc = function(x, y, z, item, srs) {
                     var properties = item.properties,
 						sessionKey = gmx.sessionKey || gmx.dataManager.options.sessionKey,
+						syncParams = L.gmx.gmxMapManager.getSyncParams(true),
 						url = L.gmxUtil.protocol + '//' + gmx.hostName
 							+ '/TileSender.ashx?ModeKey=tile&ftc=osm'
 							+ '&x=' + x
@@ -24456,6 +24464,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 					if (gmx.crossOrigin) { url += '&cross=' + gmx.crossOrigin; }
 					url += '&LayerName=' + properties[layerLink];
 					if (sessionKey) { url += '&key=' + encodeURIComponent(sessionKey); }
+					if (syncParams) { url += '&' + syncParams; }
 					if (L.gmx._sw && item.v) { url += '&sw=' + L.gmx._sw + '&v=' + item.v; }
                     return url;
                 };
@@ -26871,6 +26880,9 @@ L.gmx.VectorLayer.include({
     _setPopupContent: function (options, _popup) {
         if (!_popup) { _popup = this._popup; }
         var gmx = options.gmx || {},
+			targets = gmx.targets,
+			lastIndex = targets.length - 1,
+			curNum = 0,
             balloonData = gmx.balloonData || {},
             properties = L.extend({}, gmx.properties),
             target = gmx.target || {},
@@ -26937,7 +26949,46 @@ L.gmx.VectorLayer.include({
             }
 
             var contentDiv = L.DomUtil.create('div', '');
+            if (this.options.multiPopup && lastIndex) {  // многостраничный попап
+				if (!('curNum' in gmx)) {
+					for (var i = 0; i <= lastIndex; i++) {
+						if (targets[i].id === gmx.id) {
+							gmx.curNum = i;
+							break;
+						}
+					}
+				}
+
+				curNum = gmx.curNum;
+				var str = '<div class="paginate">\
+						<span class="icon-left-open" style="visibility: ' + (curNum > 0 ? 'visible' : 'hidden') + ';"></span>\
+						<span class="center"><b>' + (curNum + 1) + '</b> из <b>' + (lastIndex + 1) + '</b></span>\
+						<span class="icon-right-open" style="visibility: ' + (curNum < lastIndex ? 'visible' : 'hidden') + ';"></span>\
+					</div>';
+				templateBalloon = str + templateBalloon;
+            }
+
             contentDiv.innerHTML = templateBalloon;
+            if (this.options.multiPopup && lastIndex) {  // многостраничный попап
+				var left = contentDiv.getElementsByClassName('icon-left-open'),
+					right = contentDiv.getElementsByClassName('icon-right-open'),
+					 setPage = function (ev) {
+						curNum = gmx.curNum;
+						 // console.log('setPage', curNum, lastIndex, target, targets, ev)
+
+						curNum += ev.target.classList.contains('icon-right-open') ? 1 : -1;
+						if (curNum > lastIndex) { curNum = 0; }
+						else if (curNum < 0) { curNum = lastIndex; }
+						gmx.curNum = curNum;
+						var nt = targets[curNum];
+						options.gmx.id = nt.id;
+						options.gmx.target = nt;
+						gmx.properties = this.getItemProperties(nt.properties);
+						this._setPopupContent(options, _popup);
+					};
+				L.DomEvent.on(left[0], 'click', setPage, this);
+				L.DomEvent.on(right[0], 'click',  setPage, this);
+			}
             _popup.setContent(contentDiv);
             if (this._balloonHook) {
                 this._callBalloonHook(gmx.properties, _popup.getContent());
@@ -27380,7 +27431,7 @@ L.gmx.VectorLayer.include({
                     }
 
                     ev.gmx = L.extend(this.getHoverOption(item), {
-                        targets: geoItems,
+                        targets: geoItems.reverse(),
                         nodePoint: target.nodePoint,
                         prevId: prevId,
                         hoverDiff: item.hoverDiff
