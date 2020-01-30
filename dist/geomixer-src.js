@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2020-1-30 3:05:31 PM';
-var buildUUID = '58c312aff2cd46be9e1d4f6b0a1b0282';
+var buildDate = '2020-1-30 4:11:54 PM';
+var buildUUID = 'f16128fc273242f4b0b1e16d496c9098';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -24391,7 +24391,8 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
             }
 
             if ('multiPopup' in meta) {  // многостраничный попап
-				this.options.multiPopup = meta.multiPopup.Value.toLowerCase() === 'true' ? true : false;
+				var multiPopup = meta.multiPopup.Value.toLowerCase();
+				this.options.multiPopup = multiPopup === 'true' ? true : false;
             }
             if ('parentLayer' in meta) {  // todo удалить после изменений вов вьювере
                 gmx.dataSource = meta.parentLayer.Value || '';
@@ -26965,7 +26966,11 @@ L.gmx.VectorLayer.include({
 						<span class="center"><b>' + (curNum + 1) + '</b> из <b>' + (lastIndex + 1) + '</b></span>\
 						<span class="icon-right-open" style="visibility: ' + (curNum < lastIndex ? 'visible' : 'hidden') + ';"></span>\
 					</div>';
-				templateBalloon = str + templateBalloon;
+				if (this.options.multiPopup === 'top') {
+					templateBalloon = str + templateBalloon;
+				} else {
+					templateBalloon += str;
+				}
             }
 
             contentDiv.innerHTML = templateBalloon;
