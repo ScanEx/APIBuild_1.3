@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2020-1-30 4:11:54 PM';
-var buildUUID = 'f16128fc273242f4b0b1e16d496c9098';
+var buildDate = '2020-3-5 10:03:55 AM';
+var buildUUID = 'b66ea05c2bcb434bbbc4e3fc64caa62f';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -20621,9 +20621,8 @@ L.gmx = L.gmx || {};
 L.gmx._maps = {};			// свойства слоев по картам
 L.gmx._clientLayers = {};	// свойства слоев без карт (клиентские слои)
 
-var arr = /\bsw=(\d+)\b/.exec(location.search);
-if (arr && arr.length === 2) {
-	L.gmx._sw = arr[1];	// признак загрузки данных через Service Worker
+if (location.protocol === 'https:') {
+	L.gmx._sw = '1';	// признак загрузки данных через Service Worker
 	if ('serviceWorker' in navigator) {
 		navigator.serviceWorker.register('./gmx-sw' + L.gmx._sw + '.js')
 		  .then(function(registration) {
@@ -37048,7 +37047,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 eng: 'MapTiler Topo',
                 icon: iconPrefix + 'MapTiler_topo.png',
                 layers: [
-                    L.tileLayer(protocol + '//api.maptiler.com/maps/3407453d-fafc-42ba-a25d-eb558f07cb4b/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '&sw=' + L.gmx._sw : ''), {
+                    L.tileLayer(protocol + '//api.maptiler.com/maps/3407453d-fafc-42ba-a25d-eb558f07cb4b/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf', {
                         maxZoom: 22,
                         //maxNativeZoom: 18,
                         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>'
@@ -37084,7 +37083,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 eng: 'Map (MapTiler)',
                 icon: iconPrefix + 'basemap_MapTiler_' + (lang === 'rus' ? '' : '-en') + '.png',
                 layers: [
-                    L.tileLayer(protocol + '//api.maptiler.com/maps/' + (lang === 'rus' ? 'd5f3302f-dbe3-4260-bf35-9c8b99cba27a' : '888774d2-130d-4bc0-bd22-3d385c8b3f33') + '/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                    L.tileLayer(protocol + '//api.maptiler.com/maps/' + (lang === 'rus' ? 'd5f3302f-dbe3-4260-bf35-9c8b99cba27a' : '888774d2-130d-4bc0-bd22-3d385c8b3f33') + '/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf', {
                         maxZoom: 22,
                         maxNativeZoom: 18,
                         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>'
@@ -37096,7 +37095,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 eng: 'MapTiler Light',
                 icon: iconPrefix + 'MapTilerLight.png',
                 layers: [
-                    L.tileLayer(protocol + '//api.maptiler.com/maps/4d99800e-5e32-4276-8d90-46feb96cf5da/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                    L.tileLayer(protocol + '//api.maptiler.com/maps/4d99800e-5e32-4276-8d90-46feb96cf5da/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf', {
                         maxZoom: 22,
                         maxNativeZoom: 18,
                         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>'
@@ -37108,7 +37107,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                 eng: 'Hybrid (MapTiler)',
                 icon: iconPrefix + 'basemap_MapTiler_hybrid.png',
                 layers: [
-                    L.tileLayer(protocol + '//api.maptiler.com/maps/94edfef9-bbc7-44fb-800e-03682bae5500/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf' + (L.gmx._sw ? '?sw=' + L.gmx._sw : ''), {
+                    L.tileLayer(protocol + '//api.maptiler.com/maps/94edfef9-bbc7-44fb-800e-03682bae5500/256/{z}/{x}/{y}.png?key=FrA3SZOPvBcowh6thoTf', {
                         maxZoom: 22,
                         maxNativeZoom: 18,
                         attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">© MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>'
@@ -37238,6 +37237,7 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
                     L.tileLayer(osmTilePrefix + 'kosmo' + (lang === 'rus' ? '' : '-en') + '/{z}/{x}/{y}.png', {
                         //maxZoom: 25,
                         maxNativeZoom: 18,
+						subdomains: 'abd',
                         gmxCopyright: getCopyright2()
                     })
                 ]
@@ -37349,8 +37349,9 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 			eng: 'Relief',
 			icon: iconPrefix + 'basemap_terrain1.png',
 			layers: [
-				L.tileLayer('//dtilecart.kosmosnimki.ru/rw' + '/{z}/{x}/{y}.png', {
+				L.tileLayer('//{s}tilecart.kosmosnimki.ru/rw' + '/{z}/{x}/{y}.png', {
 					//maxZoom: 25,
+					subdomains: 'abcd',
 					maxNativeZoom: 13,
 					gmxCopyright: [{
 						minZoom: 1,
