@@ -1,7 +1,7 @@
 (function () {
 var define = null;
-var buildDate = '2020-3-5 10:03:55 AM';
-var buildUUID = 'b66ea05c2bcb434bbbc4e3fc64caa62f';
+var buildDate = '2020-5-29 17:19:38';
+var buildUUID = '14d065ce6cbc420bb8905da6dff67003';
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
  * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
@@ -18946,7 +18946,7 @@ if (!String.prototype.eval) {	// ES6-like template strings in ES5 - example: 'He
 }
 
 L.gmx = L.gmx || {};
-L.gmx.gmxProxy = '//maps.kosmosnimki.ru/ApiSave.ashx';
+L.gmx.gmxProxy = window.serverBase && (window.serverBase + 'proxy') || '//maps.kosmosnimki.ru/proxy';
 
 (function() {
     var requests = {};
@@ -20626,6 +20626,9 @@ if (location.protocol === 'https:') {
 	if ('serviceWorker' in navigator) {
 		navigator.serviceWorker.register('./gmx-sw' + L.gmx._sw + '.js')
 		  .then(function(registration) {
+			if (registration.active) {
+				L.gmx.serviceWorker = registration.active;
+			}
 			console.log('ServiceWorker registration successful with scope: ', registration.scope);
 		  })
 		  .catch(function(err) {
@@ -23740,7 +23743,7 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 		// }
 		this._invalidateAll();
 
-		//gmx.badTiles = {};
+		gmx.badTiles = {};
         gmx.quicklooksCache = {};
         gmx.rastersCache = {};
         delete gmx.map;
@@ -23752,6 +23755,9 @@ L.gmx.VectorLayer = VectorGridLayer.extend({
 		}
         this._map = null;
         this.fire('remove');
+    },
+	removeBadTiles: function () {
+		this._gmx.badTiles = {};
     },
 	_removeTile: function (key) {
 		if (!this._map || this._map._animatingZoom) { return; }
@@ -25124,8 +25130,8 @@ ScreenVectorTile.prototype = {
 				done(gmx.quicklooksCache[url]);
 			} else if (L.gmx.getBitmap) {
 				var urlProxy = url;
-				if (gmx.gmxProxy) {
-					urlProxy = gmx.gmxProxy + '?WrapStyle=none&get=' + encodeURIComponent(url);
+				if (L.gmx.gmxProxy) {
+					urlProxy = L.gmx.gmxProxy + '?' + encodeURIComponent(url);
 				}
 				L.gmx.getBitmap(urlProxy, fetchOptions).then(
 					function(res) {
@@ -27204,6 +27210,7 @@ L.gmx.VectorLayer.include({
                 dataOption = geoItems[i].dataOption || {},
                 item = geoItems[i],
 				parsedStyleKeys = item.parsedStyleKeys || {},
+				dpStyleKeys = dataOption.parsedStyleKeys || {},
                 // item = gmx.dataManager.getItem(idr),
                 currentStyle = item.currentStyle || parsedStyleKeys || {},
                 iconScale = currentStyle.iconScale || 1,
@@ -27211,8 +27218,8 @@ L.gmx.VectorLayer.include({
                 iconAnchor = !iconCenter && currentStyle.iconAnchor ? currentStyle.iconAnchor : null,
                 parsedStyle = gmx.styleManager.getObjStyle(item) || {},
                 lineWidth = currentStyle.lineWidth || parsedStyle.lineWidth || parsedStyle.weight || 0,
-                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || parsedStyle.iconSize || parsedStyleKeys.sx || 0),
-                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || parsedStyle.iconSize || parsedStyleKeys.sy || 0),
+                sx = lineWidth + (parsedStyle.sx || currentStyle.sx || parsedStyle.iconSize || dpStyleKeys.sx || 0),
+                sy = lineWidth + (parsedStyle.sy || currentStyle.sy || parsedStyle.iconSize || dpStyleKeys.sy || 0),
                 offset = [
                     iconScale * sx / 2,
                     iconScale * sy / 2
@@ -27475,6 +27482,7 @@ var delay = 60000,
     layers = {},
     dataManagersLinks = {},
     script = '/Layer/CheckVersion.ashx',
+    skipVersion = false,
     intervalID = null,
     timeoutID = null,
     hostBusy = {},
@@ -27575,6 +27583,9 @@ var getRequestParams = function(layer) {
 };
 
 var chkVersion = function (layer, callback) {
+    if (skipVersion) {
+		return;
+	}
 	if (typeof(layer) === 'string') {
 		layer = layers[layer];
 	}
@@ -27843,9 +27854,14 @@ var layersVersion = {
 
     chkVersion: chkVersion,
 
-    now: function() {
+    setSkipVersion: function(flag, reInit) {
+		skipVersion = flag;
+		if (reInit) { layersVersion.now(); }
+    },
+
+    now: function(msec) {
 		if (timeoutID) { clearTimeout(timeoutID); }
-		timeoutID = setTimeout(chkVersion, 0);
+		timeoutID = setTimeout(chkVersion, msec || 0);
     },
 
     stop: function() {
@@ -27892,7 +27908,7 @@ L.Map.addInitHook(function () {
 		var z = map.getZoom(),
 			center = map.getPixelBounds().getCenter();
 		if (z !== prev.z || prev.center.distanceTo(center) > 128) {
-			chkVersion();
+			layersVersion.now(1000);
 			prev.z = z;
 			prev.center = center;
 		}
@@ -32817,7 +32833,8 @@ L.Control.GmxCopyright = L.Control.extend({
         notHide: true,
 		cursorPosition: false,
         mapCopyright: '',
-        scanexCopyright: '<a target="_blank" href="http://kosmosnimki.ru/terms.html">&copy; 2007-' + (new Date().getUTCFullYear()) + ' RDC ScanEx</a> - Terms of Service',
+        scanexCopyright: '© ООО ИТЦ "СКАНЭКС"',
+        // scanexCopyright: '<a target="_blank" href="http://kosmosnimki.ru/terms.html">&copy; 2007-' + (new Date().getUTCFullYear()) + ' RDC ScanEx</a> - Terms of Service',
         leafletCopyright: '<a target="_blank" href="http://leafletjs.com">&copy; Leaflet</a>',
         id: 'copyright'
     },
@@ -37402,7 +37419,8 @@ L.DomUtil.TRANSFORM_ORIGIN = L.DomUtil.testProp(
 
         var layersGMX = [{
             mapID: mapID,
-            layerID: 'C9458F2DCB754CEEACC54216C7D1EB0A', // satellite
+            layerID: '63E083C0916F4414A2F6B78242F56CA6', // satellite
+            // layerID: 'C9458F2DCB754CEEACC54216C7D1EB0A', // satellite
             type: 'satellite',
             rus: 'Снимки',
             eng: 'Satellite',
@@ -42286,15 +42304,16 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 
 				if (popupURLTemplate || isFunction) {
 					var url1 = isFunction ? urlFuncton(event) : L.Util.template(popupURLTemplate, {lat: latlng.lat, lng: latlng.lng});
+					var body = layer.metas.body;
 					if (layer.metas.proxy === 'true') {
 						url1 = (L.gmx.gmxProxy || '//maps.kosmosnimki.ru/ApiSave.ashx') + '?WrapStyle=none&get=' + encodeURIComponent(url1);
 					}
 					fetch(url1, {mode: 'cors'})
 						.then(function(resp) {
-							return resp.json();
+							return body ? resp.text() : resp.json();
 						})
 						.then(function(json) {
-							var features = json.features,
+							var features = typeof(json) === 'string' ? [json] : json.features,
 								it = null;
 							if (!features && json.Status === 'ok' && json.Result) {
 								var geoJSON = JSON.parse(json.Result);
@@ -42307,7 +42326,7 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 									it.summary = L.gmxUtil.prettifyArea(L.gmxUtil.geoJSONGetArea(it));
 									content = L.gmxUtil.parseBalloonTemplate('', it);
 								} else {
-									content = JSON.stringify(features, null, 2);
+									content = body ? it : JSON.stringify(features, null, 2);
 								}
 								lastOpenedPopup = L.popup({maxHeight: 400})
 									.setLatLng(latlng)
@@ -42318,7 +42337,9 @@ GmxVirtualWMSLayer.prototype.initFromDescription = function(layerDescription) {
 								console.log('Not found features:', json);
 							}
 						}.bind(this))
-						.catch(console.log);
+						.catch(function(err) {
+							console.log('err', err);
+						});
 				} else {
 					var p = this._map.project(latlng),
 						tileSize = layer.options.tileSize,
